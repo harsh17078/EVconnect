@@ -1,0 +1,109 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-display: 'Orbitron', sans-serif;
+}
+
+/* ─── Base ─── */
+html { scroll-behavior: smooth; }
+body { background: #06080f; color: #e2e8f0; }
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, .2); border-radius: 99px; }
+
+/* ─── Glass Surfaces ─── */
+.glass {
+  background: rgba(15, 23, 42, .55);
+  backdrop-filter: blur(24px) saturate(1.2);
+  border: 1px solid rgba(148, 163, 184, .08);
+}
+.glass-highlight {
+  background: linear-gradient(135deg, rgba(56,189,248,.06), rgba(139,92,246,.04));
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(56, 189, 248, .12);
+}
+
+/* ─── Status Chips ─── */
+.chip-available { background: rgba(52,211,153,.12); color: #34d399; border: 1px solid rgba(52,211,153,.2); }
+.chip-occupied  { background: rgba(251,113,133,.10); color: #fb7185; border: 1px solid rgba(251,113,133,.18); }
+.chip-reserved  { background: rgba(251,191,36,.10);  color: #fbbf24; border: 1px solid rgba(251,191,36,.18); }
+.chip-offline   { background: rgba(148,163,184,.08); color: #94a3b8; border: 1px solid rgba(148,163,184,.12); }
+
+/* ─── Leaflet Dark Theme ─── */
+.leaflet-container { background: #06080f !important; font-family: inherit !important; }
+.leaflet-tile-pane { filter: brightness(0.9) contrast(1.15) saturate(0.9); }
+.leaflet-control-zoom a {
+  background: rgba(15,23,42,.85) !important;
+  color: #38bdf8 !important;
+  border: 1px solid rgba(148,163,184,.1) !important;
+  backdrop-filter: blur(12px);
+}
+.leaflet-control-zoom a:hover { background: rgba(56,189,248,.15) !important; }
+.leaflet-popup-content-wrapper {
+  background: rgba(15,23,42,.95) !important;
+  color: #e2e8f0 !important;
+  border: 1px solid rgba(56,189,248,.2) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 20px 40px rgba(0,0,0,.4) !important;
+}
+.leaflet-popup-tip { background: rgba(15,23,42,.95) !important; }
+
+/* ─── Animations ─── */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 4px currentColor, 0 0 12px currentColor; }
+  50% { box-shadow: 0 0 8px currentColor, 0 0 24px currentColor; }
+}
+@keyframes slide-up {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes charge-flow {
+  0% { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+@keyframes blink-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .25; }
+}
+
+.animate-slide-up { animation: slide-up .4s ease-out both; }
+.animate-fade-in  { animation: fade-in .3s ease-out both; }
+.animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+.animate-blink { animation: blink-dot 1.4s ease-in-out infinite; }
+
+.charge-bar {
+  background: linear-gradient(90deg, #06b6d4, #8b5cf6, #06b6d4);
+  background-size: 200% 100%;
+  animation: charge-flow 2s linear infinite;
+}
+
+/* ─── Sidebar ─── */
+.nav-item {
+  display: flex; align-items: center; gap: .75rem;
+  padding: .625rem 1rem; border-radius: .75rem;
+  font-size: .8125rem; font-weight: 500;
+  color: #94a3b8; transition: all .2s;
+  cursor: pointer; border: 1px solid transparent;
+}
+.nav-item:hover { color: #e2e8f0; background: rgba(148,163,184,.06); }
+.nav-item.active {
+  color: #38bdf8;
+  background: rgba(56,189,248,.08);
+  border-color: rgba(56,189,248,.15);
+}
+
+/* ─── Range Slider ─── */
+input[type="range"] { -webkit-appearance: none; background: transparent; cursor: pointer; }
+input[type="range"]::-webkit-slider-runnable-track { background: rgba(148,163,184,.12); height: 4px; border-radius: 2px; }
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; margin-top: -6px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #38bdf8; box-shadow: 0 0 12px rgba(56,189,248,.5);
+}

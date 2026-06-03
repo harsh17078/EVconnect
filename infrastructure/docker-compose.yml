@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # Main Database: PostgreSQL with PostGIS extension for geospatial operations
+  postgres:
+    image: postgis/postgis:15-3.3
+    container_name: evconnect-postgres
+    environment:
+      POSTGRES_USER: ev_admin
+      POSTGRES_PASSWORD: ev_secure_pass
+      POSTGRES_DB: evconnect_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d # Optional auto-setup SQL scripts
+    networks:
+      - ev-network
+    restart: unless-stopped
+
+  # Real-time Caching Layer for live charger status (Available, Occupied, Offline)
+  redis:
+    image: redis:7.0-alpine
+    container_name: evconnect-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    networks:
+      - ev-network
+    restart: unless-stopped
+
+  # MQTT Broker for physical charger telemetry heartbeat signals
+  mqtt-broker:
+    image: eclipse-mosquitto:2.0-alpine
+    container_name: evconnect-mqtt
+    ports:
+      - "1883:1883"      # MQTT Port
+      - "9001:9001"      # WebSockets MQTT Port
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+    networks:
+      - ev-network
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
+
+networks:
+  ev-network:
+    driver: bridge
