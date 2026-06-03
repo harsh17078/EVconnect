@@ -22,7 +22,7 @@ export default function WalletPanel({ balance, onTopUp, transactions = [] }) {
     <div className="space-y-4 md:space-y-5 animate-fade-in">
 
       {/* VoltPass Card */}
-      <div className="relative rounded-2xl overflow-hidden p-5 md:p-6 h-44 md:h-48 flex flex-col justify-between"
+      <div className="relative rounded-2xl overflow-hidden p-5 md:p-6 h-44 md:h-48 flex flex-col justify-between keep-dark"
         style={{ background: 'linear-gradient(135deg, #0c1631 0%, #0a1228 50%, #111b3c 100%)' }}>
         <div className="absolute top-[-40px] right-[-40px] w-40 h-40 rounded-full bg-sky-500/[.06] blur-2xl" />
         <div className="absolute bottom-[-30px] left-[-30px] w-32 h-32 rounded-full bg-violet-500/[.05] blur-2xl" />

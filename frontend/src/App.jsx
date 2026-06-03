@@ -12,6 +12,53 @@ import WalletPanel from './components/WalletPanel';
 import AIChatbot from './components/AIChatbot';
 import { STATIONS, OPERATORS } from './data/mockData';
 
+const INDIA_POLYGON = [
+  [34.5, 74.0], // J&K West
+  [35.6, 76.8], // J&K North
+  [34.5, 78.5], // Aksai Chin East
+  [31.0, 78.8], // Uttarakhand North
+  [30.2, 80.5], // Uttarakhand East
+  [27.4, 88.1], // Sikkim West
+  [28.0, 88.8], // Sikkim North
+  [27.3, 88.9], // Sikkim East
+  [27.8, 91.5], // Arunachal West
+  [29.3, 96.0], // Arunachal North
+  [28.2, 97.3], // Arunachal East
+  [24.3, 94.5], // Manipur East
+  [22.0, 93.0], // Mizoram South
+  [24.0, 92.2], // Tripura
+  [25.2, 89.8], // Meghalaya South
+  [22.0, 89.0], // West Bengal South
+  [21.6, 87.0], // Odisha Coast
+  [17.0, 82.2], // AP Coast (Kakinada)
+  [13.0, 80.3], // Chennai
+  [9.0, 79.8],  // Rameshwaram
+  [8.0, 77.5],  // Kanyakumari
+  [10.0, 76.0], // Kerala West
+  [15.0, 73.8], // Goa
+  [19.0, 72.8], // Mumbai
+  [23.5, 68.2], // Gujarat West (Kutch)
+  [24.6, 71.0], // Gujarat/Rajasthan border
+  [26.8, 69.3], // Rajasthan West (Jaisalmer)
+  [30.0, 73.8], // Rajasthan/Punjab border
+  [32.5, 75.6], // Punjab North
+  [34.0, 74.2], // J&K Southwest
+];
+
+function isPointInPolygon(point, polygon) {
+  const x = point[0], y = point[1];
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i][0], yi = polygon[i][1];
+    const xj = polygon[j][0], yj = polygon[j][1];
+    const intersect = ((yi > y) !== (yj > y))
+        && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+
 const TABS = [
   { id: 'map',      icon: MapPin,      label: 'Live Map' },
   { id: 'route',    icon: Navigation,  label: 'Route Plan' },
@@ -26,7 +73,8 @@ export default function App() {
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
   const isIndiaStation = (st) => {
-    return st.lat >= 8 && st.lat <= 37 && st.lng >= 68 && st.lng <= 97;
+    if (st.lat < 8 || st.lat > 37 || st.lng < 68 || st.lng > 97) return false;
+    return isPointInPolygon([st.lat, st.lng], INDIA_POLYGON);
   };
 
   const indiaStations = stations.filter(isIndiaStation);
@@ -197,6 +245,20 @@ export default function App() {
     }
   }, [isNetworkOnline]);
 
+  const onPlanRoute = useCallback((path) => {
+    setPlannedRoutePath(path);
+    setRouteActive(true);
+  }, []);
+
+  const onClearRoute = useCallback(() => {
+    setPlannedRoutePath([]);
+    setRouteActive(false);
+  }, []);
+
+  const onRouteUpdate = useCallback((path) => {
+    setPlannedRoutePath(path);
+  }, []);
+
   const mapStations = indiaStations.filter(s => {
     if (filterOp !== 'all' && s.operator !== filterOp) return false;
     if (searchQuery && !s.name.toLowerCase().includes(searchQuery.toLowerCase()) && !s.id.toLowerCase().includes(searchQuery.toLowerCase())) return false;
@@ -220,14 +282,14 @@ export default function App() {
       {/* ─── Mobile Overlay ─── */}
       {mobileDrawerOpen && (
         <div
-          className="fixed inset-0 bg-black/60 z-[200] md:hidden"
+          className="fixed inset-0 bg-black/60 z-[1400] md:hidden"
           onClick={() => setMobileDrawerOpen(false)}
         />
       )}
 
       {/* ─── Sidebar (desktop) / Drawer (mobile) ─── */}
       <aside className={`
-        shrink-0 flex flex-col border-r border-white/[.05] transition-all duration-300 z-[210]
+        shrink-0 flex flex-col border-r border-white/[.05] transform transition-all duration-300 z-[1500]
         ${theme === 'light' ? 'bg-white/90' : 'bg-[#080c17]/95'}
         backdrop-blur-xl
         fixed md:relative inset-y-0 left-0
@@ -237,7 +299,7 @@ export default function App() {
         {/* Logo */}
         <div className="h-16 flex items-center gap-3 px-4 border-b border-white/[.05] shrink-0">
           <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-sky-400 to-violet-500 flex items-center justify-center shadow-lg shadow-sky-500/20 shrink-0">
-            <Zap className="w-4 h-4 text-white" />
+            <Zap className="w-4 h-4 text-white keep-white" />
           </div>
           {(sidebarOpen || mobileDrawerOpen) && (
             <div className="animate-fade-in">
@@ -397,7 +459,7 @@ export default function App() {
             </button>
 
             {/* Avatar */}
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-500 to-violet-500 flex items-center justify-center text-xs font-bold text-white shadow-lg shadow-violet-500/15">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-500 to-violet-500 flex items-center justify-center text-xs font-bold text-white keep-white shadow-lg shadow-violet-500/15">
               EV
             </div>
           </div>
@@ -432,14 +494,26 @@ export default function App() {
                 <button
                   onClick={() => setFilterOp('all')}
                   className={`text-[10px] md:text-[11px] font-semibold px-2.5 md:px-3 py-1.5 rounded-lg border backdrop-blur-md transition-all ${
-                    filterOp === 'all' ? 'bg-sky-500/20 border-sky-500/30 text-sky-400' : 'bg-slate-900/70 border-white/[.06] text-slate-400 hover:text-white'
+                    filterOp === 'all'
+                      ? (theme === 'light'
+                          ? 'bg-sky-500/10 border-sky-500/25 text-sky-600 shadow-sm'
+                          : 'bg-sky-500/20 border-sky-500/30 text-sky-400')
+                      : (theme === 'light'
+                          ? 'bg-white/80 border-slate-200/80 text-slate-600 hover:text-slate-900 hover:bg-white'
+                          : 'bg-slate-900/70 border-white/[.06] text-slate-400 hover:text-white')
                   }`}
                 >All Networks</button>
                 {OPERATORS.map(op => (
                   <button key={op.id}
                     onClick={() => setFilterOp(filterOp === op.id ? 'all' : op.id)}
                     className={`text-[10px] md:text-[11px] font-semibold px-2.5 md:px-3 py-1.5 rounded-lg border backdrop-blur-md transition-all ${
-                      filterOp === op.id ? 'bg-sky-500/20 border-sky-500/30 text-sky-400' : 'bg-slate-900/70 border-white/[.06] text-slate-400 hover:text-white'
+                      filterOp === op.id
+                        ? (theme === 'light'
+                            ? 'bg-sky-500/10 border-sky-500/25 text-sky-600 shadow-sm'
+                            : 'bg-sky-500/20 border-sky-500/30 text-sky-400')
+                        : (theme === 'light'
+                            ? 'bg-white/80 border-slate-200/80 text-slate-600 hover:text-slate-900 hover:bg-white'
+                            : 'bg-slate-900/70 border-white/[.06] text-slate-400 hover:text-white')
                     }`}
                   >{op.logo} <span className="hidden sm:inline">{op.name.split(' ')[0]}</span></button>
                 ))}
@@ -483,9 +557,9 @@ export default function App() {
                 <RoutePlanner
                   stations={stations}
                   routeActive={routeActive}
-                  onPlanRoute={(path) => { setPlannedRoutePath(path); setRouteActive(true); }}
-                  onClearRoute={() => { setPlannedRoutePath([]); setRouteActive(false); }}
-                  onRouteUpdate={(path) => { if (routeActive) setPlannedRoutePath(path); }}
+                  onPlanRoute={onPlanRoute}
+                  onClearRoute={onClearRoute}
+                  onRouteUpdate={onRouteUpdate}
                   onStartCharge={onStartCharge}
                   userSoc={userSoc}
                 />

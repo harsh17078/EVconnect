@@ -215,12 +215,19 @@ input[type="range"]::-webkit-slider-thumb {
 .light-theme .border-amber-500\/25 { border-color: rgba(217, 119, 6, 0.25) !important; }
 
 /* Keep-Dark Panels Preservations */
-.light-theme .keep-dark .text-white { color: #ffffff !important; }
-.light-theme .keep-dark .text-slate-200 { color: #e2e8f0 !important; }
-.light-theme .keep-dark .text-slate-300 { color: #cbd5e1 !important; }
-.light-theme .keep-dark .text-slate-400 { color: #94a3b8 !important; }
-.light-theme .keep-dark .text-sky-400 { color: #38bdf8 !important; }
-.light-theme .keep-dark .text-emerald-400 { color: #34d399 !important; }
+.light-theme .keep-dark.text-white, .light-theme .keep-dark .text-white { color: #ffffff !important; }
+.light-theme .keep-dark.text-slate-200, .light-theme .keep-dark .text-slate-200 { color: #e2e8f0 !important; }
+.light-theme .keep-dark.text-slate-300, .light-theme .keep-dark .text-slate-300 { color: #cbd5e1 !important; }
+.light-theme .keep-dark.text-slate-400, .light-theme .keep-dark .text-slate-400 { color: #94a3b8 !important; }
+.light-theme .keep-dark.text-sky-400, .light-theme .keep-dark .text-sky-400 { color: #38bdf8 !important; }
+.light-theme .keep-dark.text-emerald-400, .light-theme .keep-dark .text-emerald-400 { color: #34d399 !important; }
+
+/* Keep White text on solid dark buttons or designated elements in light theme */
+.light-theme button.text-white,
+.light-theme button .text-white,
+.light-theme .keep-white {
+  color: #ffffff !important;
+}
 
 /* Leaflet Maps */
 .light-theme .leaflet-tile-pane { filter: none !important; }

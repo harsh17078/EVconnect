@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Route, Zap, Navigation, Battery, Search, MapPin, Clock, Map } from 'lucide-react';
 import { ROUTE_PATH } from '../data/mockData';
 
@@ -156,6 +156,11 @@ const planEVRoute = (from, to, startSoc, stationsList) => {
 };
 
 export default function RoutePlanner({ stations, onPlanRoute, onClearRoute, onRouteUpdate, routeActive, onStartCharge, userSoc }) {
+  const stationsRef = useRef(stations);
+  useEffect(() => {
+    stationsRef.current = stations;
+  }, [stations]);
+
   const [soc, setSoc] = useState(userSoc);
   
   // Sync state if userSoc changes globally
@@ -192,56 +197,60 @@ export default function RoutePlanner({ stations, onPlanRoute, onClearRoute, onRo
 
   // ── Auto-recalculate Stops & Slices on SOC or City inputs change ──
   useEffect(() => {
-    const runPlan = async () => {
-      let plannedStops = [];
-      let totalDist = 0;
-      let driveTimeMins = 0;
-      let routePathCoords = [];
+    const timer = setTimeout(() => {
+      const runPlan = async () => {
+        let plannedStops = [];
+        let totalDist = 0;
+        let driveTimeMins = 0;
+        let routePathCoords = [];
 
-      try {
-        const response = await fetch('http://localhost:8085/api/route', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            from: fromQuery,
-            to: toQuery,
-            startSoc: soc
-          })
+        try {
+          const response = await fetch('http://localhost:8085/api/route', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              from: fromQuery,
+              to: toQuery,
+              startSoc: soc
+            })
+          });
+          if (!response.ok) throw new Error('API error');
+          const data = await response.json();
+          plannedStops = data.suggestedStops;
+          totalDist = data.totalDistanceKm;
+          routePathCoords = data.routeCoords || [];
+        } catch (error) {
+          console.warn('⚠️ Route optimization API offline, using local heuristics fallback');
+          const result = planEVRoute(fromQuery, toQuery, soc, stationsRef.current);
+          plannedStops = result.suggestedStops;
+          totalDist = result.totalDistanceKm;
+          routePathCoords = getRouteSegment(fromQuery, toQuery);
+        }
+        
+        setStops(plannedStops);
+        setRoutePath(routePathCoords);
+
+        // Travel time at average 80 km/h speed + charging durations
+        driveTimeMins = Math.round((totalDist / 80) * 60);
+        const chargingTimeMins = plannedStops.reduce((sum, s) => sum + s.chargeMins, 0);
+
+        setRouteStats({
+          distance: totalDist,
+          stopsCount: plannedStops.length,
+          timeMins: driveTimeMins + chargingTimeMins,
         });
-        if (!response.ok) throw new Error('API error');
-        const data = await response.json();
-        plannedStops = data.suggestedStops;
-        totalDist = data.totalDistanceKm;
-        routePathCoords = data.routeCoords || [];
-      } catch (error) {
-        console.warn('⚠️ Route optimization API offline, using local heuristics fallback');
-        const result = planEVRoute(fromQuery, toQuery, soc, stations);
-        plannedStops = result.suggestedStops;
-        totalDist = result.totalDistanceKm;
-        routePathCoords = getRouteSegment(fromQuery, toQuery);
-      }
-      
-      setStops(plannedStops);
-      setRoutePath(routePathCoords);
+        
+        // Dynamic live update of route line coordinates on map
+        if (onRouteUpdate) {
+          onRouteUpdate(routePathCoords);
+        }
+      };
 
-      // Travel time at average 80 km/h speed + charging durations
-      driveTimeMins = Math.round((totalDist / 80) * 60);
-      const chargingTimeMins = plannedStops.reduce((sum, s) => sum + s.chargeMins, 0);
+      runPlan();
+    }, 400); // 400ms debounce to avoid spamming network requests
 
-      setRouteStats({
-        distance: totalDist,
-        stopsCount: plannedStops.length,
-        timeMins: driveTimeMins + chargingTimeMins,
-      });
-      
-      // Dynamic live update of route line coordinates on map
-      if (onRouteUpdate) {
-        onRouteUpdate(routePathCoords);
-      }
-    };
-
-    runPlan();
-  }, [fromQuery, toQuery, soc, stations, onRouteUpdate]);
+    return () => clearTimeout(timer);
+  }, [fromQuery, toQuery, soc, onRouteUpdate]);
 
   const handlePlanClick = () => {
     onPlanRoute(routePath);

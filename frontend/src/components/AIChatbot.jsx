@@ -64,7 +64,7 @@ export default function AIChatbot({ balance = 1250, co2Total = 85.4, userSoc = 7
       <div className="relative rounded-2xl overflow-hidden glass border-white/[.06] flex items-center justify-between p-4 md:p-6 h-28 md:h-36">
         <div className="relative z-10 flex items-start gap-3 md:gap-4">
           <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-gradient-to-tr from-violet-600 to-sky-500 flex items-center justify-center shadow-lg shadow-violet-500/20 shrink-0">
-            <Sparkles className="w-5 h-5 md:w-6 md:h-6 text-white" />
+            <Sparkles className="w-5 h-5 md:w-6 md:h-6 text-white keep-white" />
           </div>
           <div>
             <h3 className="text-base md:text-lg font-bold text-white flex items-center gap-2">

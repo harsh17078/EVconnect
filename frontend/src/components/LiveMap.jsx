@@ -24,9 +24,13 @@ export default function LiveMap({ stations, selectedStation, onSelectStation, ro
       mapRef.current = null;
     }
 
-    const map = window.L.map(containerRef.current, {
+    const L = window.L;
+    const indiaBounds = L.latLngBounds([6.0, 68.0], [38.0, 98.0]);
+    const map = L.map(containerRef.current, {
       zoomControl: false,
       attributionControl: false,
+      maxBounds: indiaBounds,
+      maxBoundsViscosity: 0.8,
     }).setView([27.4, 79.2], 7);
 
     window.L.control.zoom({ position: 'bottomright' }).addTo(map);

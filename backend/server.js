@@ -264,7 +264,7 @@ async function geocodeCity(name) {
     if (clean.includes(key)) return val;
   }
   try {
-    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(name)}&limit=1`, {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=in&q=${encodeURIComponent(name)}&limit=1`, {
       headers: { 'User-Agent': 'EVConnect-Charging-App' }
     });
     if (!res.ok) throw new Error('Nominatim geocoder error');
@@ -315,6 +315,14 @@ app.post('/api/route', async (req, res) => {
   const { from, to, startSoc } = req.body;
   console.log(`[Routing Engine] Planning route from ${from} to ${to}. Start SOC: ${startSoc}%`);
 
+  // Clear stale dynamic stations to prevent database pollution
+  mockDB.stations = mockDB.stations.filter(s => {
+    if (!s.id.startsWith('DYN-')) return true;
+    const isOccupied = s.status === 'occupied' || s.status === 'reserved';
+    const hasActiveSession = mockDB.sessions.some(sess => sess.stationId === s.id);
+    return isOccupied || hasActiveSession;
+  });
+
   let startCoords = await geocodeCity(from);
   let endCoords = await geocodeCity(to);
 
@@ -332,7 +340,13 @@ app.post('/api/route', async (req, res) => {
     console.log(`[Routing Engine] Real-world route found. Distance: ${totalDistanceKm} km. Nodes: ${routeCoords.length}`);
   } catch (err) {
     console.warn('⚠️ OSRM routing failed. Falling back to default Lucknow-Delhi corridor.');
-    routeCoords = DEFAULT_ROUTE_PATH;
+    const startDistToLucknow = haversineDistance([startCoords.lat, startCoords.lng], [BACKUP_GEOLOCATIONS.lucknow.lat, BACKUP_GEOLOCATIONS.lucknow.lng]);
+    const startDistToDelhi = haversineDistance([startCoords.lat, startCoords.lng], [BACKUP_GEOLOCATIONS.delhi.lat, BACKUP_GEOLOCATIONS.delhi.lng]);
+    if (startDistToDelhi < startDistToLucknow) {
+      routeCoords = [...DEFAULT_ROUTE_PATH].reverse();
+    } else {
+      routeCoords = DEFAULT_ROUTE_PATH;
+    }
     totalDistanceKm = 500;
   }
 
