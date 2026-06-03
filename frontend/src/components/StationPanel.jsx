@@ -16,7 +16,7 @@ export default function StationPanel({ station, onClose, onStartCharge, onReserv
 
   return (
     <div className="absolute bottom-0 left-0 right-0 z-[1200] animate-slide-up">
-      <div className="glass rounded-t-3xl p-6 max-h-[75vh] overflow-y-auto shadow-[0_-12px_40px_rgba(0,0,0,.5)]">
+      <div className="glass rounded-t-3xl p-4 md:p-6 max-h-[80vh] md:max-h-[75vh] overflow-y-auto shadow-[0_-12px_40px_rgba(0,0,0,.5)]">
         {/* Header */}
         <div className="flex items-start justify-between mb-5">
           <div className="flex-1 min-w-0">
@@ -32,7 +32,7 @@ export default function StationPanel({ station, onClose, onStartCharge, onReserv
           </button>
         </div>
         {/* Metrics Grid */}
-        <div className="grid grid-cols-4 gap-2 mb-5">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-5">
           {[{ icon: Zap, label: 'Power', value: `${station.power} kW`, color: 'text-sky-400' },
             { icon: Gauge, label: 'Rate', value: `₹${station.price}/kWh`, color: 'text-white' },
             { icon: Clock, label: 'Wait', value: station.waitMin > 0 ? `${station.waitMin} min` : 'None', color: station.waitMin > 0 ? 'text-amber-400' : 'text-emerald-40' },
