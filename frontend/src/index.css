@@ -84,6 +84,10 @@ body { background: #06080f; color: #e2e8f0; }
   animation: charge-flow 2s linear infinite;
 }
 
+.banner-gradient {
+  background-image: linear-gradient(to right, #0d1326, rgba(13, 19, 38, 0.4), transparent);
+}
+
 /* ─── Sidebar ─── */
 .nav-item {
   display: flex; align-items: center; gap: .75rem;
@@ -106,6 +110,21 @@ input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none; margin-top: -6px;
   width: 16px; height: 16px; border-radius: 50%;
   background: #38bdf8; box-shadow: 0 0 12px rgba(56,189,248,.5);
+}
+
+/* ─── Leaflet Tooltips ─── */
+.custom-tooltip {
+  background: rgba(15, 23, 42, 0.95) !important;
+  border: 1px solid rgba(56, 189, 248, 0.2) !important;
+  border-radius: 8px !important;
+  padding: 6px 10px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+}
+.custom-tooltip .tooltip-title {
+  color: #e2e8f0 !important;
+}
+.custom-tooltip .tooltip-desc {
+  color: #94a3b8 !important;
 }
 
 /* ─── Light Theme Styles ─── */
@@ -141,15 +160,91 @@ input[type="range"]::-webkit-slider-thumb {
 .light-theme text, .light-theme span, .light-theme h1, .light-theme h2, .light-theme h3, .light-theme h4, .light-theme p {
   color: inherit;
 }
+
+/* Light Theme High Contrast Colors */
 .light-theme .text-white { color: #0f172a !important; }
 .light-theme .text-slate-200 { color: #1e293b !important; }
 .light-theme .text-slate-300 { color: #334155 !important; }
 .light-theme .text-slate-400 { color: #475569 !important; }
+.light-theme .text-sky-400 { color: #0284c7 !important; }
+.light-theme .text-sky-300 { color: #0369a1 !important; }
+.light-theme .text-sky-500 { color: #0369a1 !important; }
+.light-theme .text-emerald-400 { color: #166534 !important; }
+.light-theme .text-emerald-500 { color: #166534 !important; }
+.light-theme .text-amber-400 { color: #b45309 !important; }
+.light-theme .text-amber-500 { color: #b45309 !important; }
+.light-theme .text-rose-400 { color: #be123c !important; }
+.light-theme .text-rose-500 { color: #be123c !important; }
+.light-theme .text-violet-400 { color: #6d28d9 !important; }
+.light-theme .text-violet-500 { color: #6d28d9 !important; }
+
+/* Light Theme Element Backgrounds and Borders */
 .light-theme .bg-white\/\[\.04\] { background-color: rgba(15, 23, 42, 0.03) !important; }
 .light-theme .bg-white\/\[\.03\] { background-color: rgba(15, 23, 42, 0.02) !important; }
 .light-theme .bg-white\/\[\.02\] { background-color: rgba(15, 23, 42, 0.01) !important; }
 .light-theme .border-white\/\[\.06\] { border-color: rgba(15, 23, 42, 0.06) !important; }
 .light-theme .border-white\/\[\.07\] { border-color: rgba(15, 23, 42, 0.07) !important; }
 .light-theme .border-white\/10 { border-color: rgba(15, 23, 42, 0.08) !important; }
+.light-theme .border-white\/\[\.05\] { border-color: rgba(15, 23, 42, 0.05) !important; }
+
+/* Hover Overrides */
+.light-theme .hover\:bg-white\/\[\.04\]:hover { background-color: rgba(15, 23, 42, 0.04) !important; }
+.light-theme .hover\:bg-white\/\[\.05\]:hover { background-color: rgba(15, 23, 42, 0.05) !important; }
+.light-theme .hover\:bg-white\/\[\.06\]:hover { background-color: rgba(15, 23, 42, 0.05) !important; }
+.light-theme .hover\:bg-white\/5:hover { background-color: rgba(15, 23, 42, 0.04) !important; }
+
+/* Dynamic Status Chips */
+.light-theme .chip-available { background: rgba(22, 163, 74, 0.1) !important; color: #16a34a !important; border-color: rgba(22, 163, 74, 0.2) !important; }
+.light-theme .chip-occupied  { background: rgba(220, 38, 38, 0.08) !important; color: #dc2626 !important; border-color: rgba(220, 38, 38, 0.16) !important; }
+.light-theme .chip-reserved  { background: rgba(217, 119, 6, 0.08) !important;  color: #d97706 !important; border-color: rgba(217, 119, 6, 0.16) !important; }
+.light-theme .chip-offline   { background: rgba(100, 116, 139, 0.08) !important; color: #64748b !important; border-color: rgba(100, 116, 139, 0.15) !important; }
+
+/* Dynamic Session & Route Details */
+.light-theme .bg-sky-500\/10 { background-color: rgba(2, 132, 199, 0.1) !important; }
+.light-theme .bg-sky-500\/15 { background-color: rgba(2, 132, 199, 0.15) !important; }
+.light-theme .bg-sky-500\/20 { background-color: rgba(2, 132, 199, 0.15) !important; }
+.light-theme .border-sky-500\/20 { border-color: rgba(2, 132, 199, 0.25) !important; }
+.light-theme .border-sky-500\/25 { border-color: rgba(2, 132, 199, 0.3) !important; }
+.light-theme .bg-emerald-500\/10 { background-color: rgba(22, 163, 74, 0.1) !important; }
+.light-theme .border-emerald-500\/20 { border-color: rgba(22, 163, 74, 0.2) !important; }
+.light-theme .bg-rose-500\/10 { background-color: rgba(220, 38, 38, 0.08) !important; }
+.light-theme .border-rose-500\/15 { border-color: rgba(220, 38, 38, 0.16) !important; }
+.light-theme .bg-amber-500\/10 { background-color: rgba(217, 119, 6, 0.08) !important; }
+.light-theme .border-amber-500\/15 { border-color: rgba(217, 119, 6, 0.16) !important; }
+.light-theme .bg-amber-500\/15 { background-color: rgba(217, 119, 6, 0.12) !important; }
+.light-theme .border-amber-500\/25 { border-color: rgba(217, 119, 6, 0.25) !important; }
+
+/* Keep-Dark Panels Preservations */
+.light-theme .keep-dark .text-white { color: #ffffff !important; }
+.light-theme .keep-dark .text-slate-200 { color: #e2e8f0 !important; }
+.light-theme .keep-dark .text-slate-300 { color: #cbd5e1 !important; }
+.light-theme .keep-dark .text-slate-400 { color: #94a3b8 !important; }
+.light-theme .keep-dark .text-sky-400 { color: #38bdf8 !important; }
+.light-theme .keep-dark .text-emerald-400 { color: #34d399 !important; }
+
+/* Leaflet Maps */
 .light-theme .leaflet-tile-pane { filter: none !important; }
+.light-theme .leaflet-popup-content-wrapper {
+  background: rgba(255, 255, 255, 0.95) !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(56, 189, 248, 0.3) !important;
+}
+.light-theme .leaflet-popup-tip {
+  background: rgba(255, 255, 255, 0.95) !important;
+}
+.light-theme .custom-tooltip {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border-color: rgba(56, 189, 248, 0.3) !important;
+}
+.light-theme .custom-tooltip .tooltip-title {
+  color: #0f172a !important;
+}
+.light-theme .custom-tooltip .tooltip-desc {
+  color: #475569 !important;
+}
+
+/* Banner Gradients */
+.light-theme .banner-gradient {
+  background-image: linear-gradient(to right, #ffffff, rgba(255, 255, 255, 0.4), transparent) !important;
+}
 

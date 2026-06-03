@@ -177,7 +177,7 @@ app.post('/api/stations/:id/start-charge', (req, res) => {
     operator: station.operator,
     power: station.power,
     price: station.price,
-    startSoc: 32,
+    startSoc: req.body.startSoc || 32,
     isOffline: isOffline || false,
     startedAt: new Date().toISOString()
   };
@@ -220,81 +220,231 @@ app.post('/api/stations/:id/stop-charge', (req, res) => {
   res.json({ status: 'success', walletBalance: mockDB.walletBalance, transactions: mockDB.transactions });
 });
 
-// Smart Route Optimizer Endpoint (Dynamic from/to highway calculations)
-const CITY_KMS = {
-  'lucknow': 0,
-  'kanpur': 80,
-  'agra': 220,
-  'mathura': 300,
-  'jewar': 420,
-  'noida': 480,
-  'delhi': 500,
+// ─── Routing Utilities (Haversine & OpenStreetMap Integrations) ───
+
+// Predefined geocoding backups for corridor cities (useful when offline/fallback)
+const BACKUP_GEOLOCATIONS = {
+  'lucknow': { lat: 26.8504, lng: 80.9422 },
+  'kanpur': { lat: 26.4712, lng: 80.2618 },
+  'agra': { lat: 27.1625, lng: 78.0215 },
+  'mathura': { lat: 27.5255, lng: 77.6212 },
+  'jewar': { lat: 28.1402, lng: 77.5852 },
+  'noida': { lat: 28.5800, lng: 77.3100 },
+  'delhi': { lat: 28.6139, lng: 77.2090 },
 };
 
-const STATION_KMS = {
-  'TP-LKO-01': 5,
-  'CZ-LKO-07': 8,
-  'ST-KNP-02': 80,
-  'CZ-AGR-03': 220,
-  'JB-MTR-04': 300,
-  'TP-JWR-05': 420,
-  'ST-DLH-06': 495,
-};
+const DEFAULT_ROUTE_PATH = [
+  [26.8467, 80.9462], [26.7584, 80.7012], [26.6110, 80.4501],
+  [26.4499, 80.3319], [26.5401, 79.9102], [26.8821, 79.0232],
+  [27.1767, 78.0081], [27.3501, 77.8102], [27.5255, 77.6212],
+  [27.8102, 77.5852], [28.1402, 77.5852], [28.4744, 77.5040],
+  [28.5800, 77.3100], [28.6139, 77.2090],
+];
 
-app.post('/api/route', (req, res) => {
+// Distance calculations helper
+function haversineDistance(coords1, coords2) {
+  const toRad = (x) => (x * Math.PI) / 180;
+  const R = 6371; // km
+  const dLat = toRad(coords2[0] - coords1[0]);
+  const dLng = toRad(coords2[1] - coords1[1]);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(coords1[0])) *
+      Math.cos(toRad(coords2[0])) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+// Nominatim Geocoder
+async function geocodeCity(name) {
+  const clean = (name || '').toLowerCase().trim();
+  for (const [key, val] of Object.entries(BACKUP_GEOLOCATIONS)) {
+    if (clean.includes(key)) return val;
+  }
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(name)}&limit=1`, {
+      headers: { 'User-Agent': 'EVConnect-Charging-App' }
+    });
+    if (!res.ok) throw new Error('Nominatim geocoder error');
+    const data = await res.json();
+    if (data && data.length > 0) {
+      return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+    }
+  } catch (err) {
+    console.warn(`[Geocoder] Failed to fetch coordinates for "${name}":`, err.message);
+  }
+  return null;
+}
+
+// Nominatim Reverse Geocoder (find intermediate place names)
+async function getPlaceName(lat, lng) {
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10`, {
+      headers: { 'User-Agent': 'EVConnect-Charging-App' }
+    });
+    if (!res.ok) throw new Error('Nominatim reverse geocoder error');
+    const data = await res.json();
+    if (data && data.address) {
+      return data.address.city || data.address.town || data.address.village || data.address.county || null;
+    }
+  } catch (err) {
+    console.warn(`[Geocoder] Reverse lookup failed for ${lat}, ${lng}:`, err.message);
+  }
+  return null;
+}
+
+// OSRM Driving Route Engine
+async function getOSRMRoute(start, end) {
+  const url = `https://router.project-osrm.org/route/v1/driving/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('OSRM routing engine response error');
+  const data = await res.json();
+  if (data && data.routes && data.routes.length > 0) {
+    const route = data.routes[0];
+    const coords = route.geometry.coordinates.map(c => [c[1], c[0]]); // convert to [lat, lng]
+    const distanceKm = Math.round(route.distance / 1000);
+    return { coords, distanceKm };
+  }
+  throw new Error('OSRM route was empty');
+}
+
+// Main Endpoint handler
+app.post('/api/route', async (req, res) => {
   const { from, to, startSoc } = req.body;
   console.log(`[Routing Engine] Planning route from ${from} to ${to}. Start SOC: ${startSoc}%`);
-  
-  const f = (from || '').toLowerCase();
-  const t = (to || '').toLowerCase();
 
-  let startKm = 0;
-  let endKm = 500;
-  
-  for (const [name, km] of Object.entries(CITY_KMS)) {
-    if (f.includes(name)) startKm = km;
-    if (t.includes(name)) endKm = km;
+  let startCoords = await geocodeCity(from);
+  let endCoords = await geocodeCity(to);
+
+  // Fallback coords
+  if (!startCoords) startCoords = BACKUP_GEOLOCATIONS.lucknow;
+  if (!endCoords) endCoords = BACKUP_GEOLOCATIONS.delhi;
+
+  let routeCoords = null;
+  let totalDistanceKm = 0;
+
+  try {
+    const result = await getOSRMRoute(startCoords, endCoords);
+    routeCoords = result.coords;
+    totalDistanceKm = result.distanceKm;
+    console.log(`[Routing Engine] Real-world route found. Distance: ${totalDistanceKm} km. Nodes: ${routeCoords.length}`);
+  } catch (err) {
+    console.warn('⚠️ OSRM routing failed. Falling back to default Lucknow-Delhi corridor.');
+    routeCoords = DEFAULT_ROUTE_PATH;
+    totalDistanceKm = 500;
   }
 
-  const direction = startKm <= endKm ? 1 : -1;
-  const totalDistance = Math.abs(endKm - startKm);
-  
-  const stationsAlongRoute = mockDB.stations
-    .map(s => ({
-      ...s,
-      km: STATION_KMS[s.id] || 0
-    }))
-    .filter(s => {
-      if (direction === 1) {
-        return s.km > startKm && s.km < endKm;
-      } else {
-        return s.km < startKm && s.km > endKm;
-      }
-    });
+  // Calculate cumulative distances along route nodes
+  const cumulativeDistances = [0];
+  for (let i = 1; i < routeCoords.length; i++) {
+    cumulativeDistances.push(
+      cumulativeDistances[i - 1] + haversineDistance(routeCoords[i - 1], routeCoords[i])
+    );
+  }
 
-  stationsAlongRoute.sort((a, b) => (a.km - b.km) * direction);
+  // Filter existing stations close to this route (within 25 km)
+  let stationsAlongRoute = [];
+  mockDB.stations.forEach(s => {
+    let minDistance = Infinity;
+    let closestIndex = -1;
+    for (let i = 0; i < routeCoords.length; i++) {
+      const dist = haversineDistance([s.lat, s.lng], routeCoords[i]);
+      if (dist < minDistance) {
+        minDistance = dist;
+        closestIndex = i;
+      }
+    }
+    if (minDistance <= 25) { // Within 25 km threshold
+      stationsAlongRoute.push({
+        ...s,
+        routeIndex: closestIndex,
+        distFromRoute: minDistance,
+        km: cumulativeDistances[closestIndex]
+      });
+    }
+  });
+
+  // Dynamically generate highway chargers if fewer than 3 are present on the route
+  if (stationsAlongRoute.length < 3) {
+    const numToGen = Math.max(2, Math.floor(totalDistanceKm / 120));
+    console.log(`[Routing Engine] Found only ${stationsAlongRoute.length} stations. Generating ${numToGen} dynamic highway chargers...`);
+    const newStations = [];
+
+    for (let j = 1; j <= numToGen; j++) {
+      const frac = j / (numToGen + 1);
+      const coordIndex = Math.floor(routeCoords.length * frac);
+      const [lat, lng] = routeCoords[coordIndex];
+
+      // Reverse geocode to find a nearby town/place name
+      let townName = await getPlaceName(lat, lng);
+      if (!townName) {
+        townName = `Corridor Plaza km ${Math.round(totalDistanceKm * frac)}`;
+      }
+
+      const operators = ['tata', 'statiq', 'chargezone', 'jiobp'];
+      const op = operators[j % operators.length];
+      const newStId = `DYN-${op.toUpperCase()}-${Math.floor(Math.random() * 90000) + 10000}`;
+
+      const newSt = {
+        id: newStId,
+        name: `${op === 'tata' ? 'Tata Power Hub' : op === 'statiq' ? 'Statiq Fast' : op === 'chargezone' ? 'ChargeZone' : 'Jio-bp Pulse'} — ${townName}`,
+        operator: op,
+        lat,
+        lng,
+        status: 'available',
+        connector: 'CCS2',
+        power: [60, 120, 150, 180][Math.floor(Math.random() * 4)],
+        price: parseFloat((18.0 + Math.random() * 5.0).toFixed(1)),
+        queue: 0,
+        waitMin: 0,
+        uptime: parseFloat((95.0 + Math.random() * 4.9).toFixed(1)),
+        latency: Math.floor(30 + Math.random() * 40),
+        temp: Math.floor(25 + Math.random() * 12),
+        voltage: 415,
+        current: 0,
+        faultRisk: Math.floor(Math.random() * 15),
+        forecast: Array.from({ length: 6 }, () => Math.floor(10 + Math.random() * 80))
+      };
+
+      mockDB.stations.push(newSt);
+      newStations.push({
+        ...newSt,
+        routeIndex: coordIndex,
+        distFromRoute: 0,
+        km: cumulativeDistances[coordIndex]
+      });
+    }
+
+    stationsAlongRoute = [...stationsAlongRoute, ...newStations];
+    broadcastState();
+  }
+
+  // Sort stations in the direction of travel
+  stationsAlongRoute.sort((a, b) => a.routeIndex - b.routeIndex);
 
   const suggestedStops = [];
-  let currentKm = startKm;
-  let currentSoc = parseFloat(startSoc) || 32;
+  let currentKm = 0;
+  let currentSoc = parseFloat(startSoc) || 72;
   const maxRange = 437; 
-  
+
   let attempts = 0;
   while (attempts < 10) {
     attempts++;
     const remainingRange = maxRange * (currentSoc / 100);
-    const distanceToDest = Math.abs(endKm - currentKm);
-    
-    const rangeNeededToDest = distanceToDest + (maxRange * 0.1);
-    if (remainingRange >= rangeNeededToDest || remainingRange >= distanceToDest) {
+    const distanceToDest = totalDistanceKm - currentKm;
+
+    // Buffer to verify we can comfortably reach destination
+    if (remainingRange >= distanceToDest + (maxRange * 0.1) || remainingRange >= distanceToDest) {
       break;
     }
 
     let bestStation = null;
     for (const station of stationsAlongRoute) {
       if (suggestedStops.some(s => s.id === station.id)) continue;
-      const distFromCurrent = Math.abs(station.km - currentKm);
-      if (distFromCurrent <= remainingRange - (maxRange * 0.05)) {
+      const distFromCurrent = station.km - currentKm;
+      if (distFromCurrent > 0 && distFromCurrent <= remainingRange - (maxRange * 0.05)) {
         bestStation = station;
       }
     }
@@ -302,8 +452,8 @@ app.post('/api/route', (req, res) => {
     if (!bestStation) {
       for (const station of stationsAlongRoute) {
         if (suggestedStops.some(s => s.id === station.id)) continue;
-        const distFromCurrent = Math.abs(station.km - currentKm);
-        if (distFromCurrent <= remainingRange) {
+        const distFromCurrent = station.km - currentKm;
+        if (distFromCurrent > 0 && distFromCurrent <= remainingRange) {
           bestStation = station;
           break;
         }
@@ -312,7 +462,7 @@ app.post('/api/route', (req, res) => {
 
     if (!bestStation) break;
 
-    const distToStation = Math.abs(bestStation.km - currentKm);
+    const distToStation = bestStation.km - currentKm;
     const socAtStation = Math.round(currentSoc - (distToStation / maxRange * 100));
     const targetSoc = 80;
     const socNeeded = targetSoc - socAtStation;
@@ -333,9 +483,10 @@ app.post('/api/route', (req, res) => {
   }
 
   res.json({
-    route: `${from} - ${to} Expressway Corridor`,
-    totalDistanceKm: totalDistance,
-    suggestedStops
+    route: `${from} - ${to} Corridor`,
+    totalDistanceKm: totalDistanceKm,
+    suggestedStops,
+    routeCoords
   });
 });
 

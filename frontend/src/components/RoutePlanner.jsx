@@ -155,9 +155,16 @@ const planEVRoute = (from, to, startSoc, stationsList) => {
   };
 };
 
-export default function RoutePlanner({ stations, onPlanRoute, onClearRoute, onRouteUpdate, routeActive, onStartCharge }) {
-  const [soc, setSoc] = useState(32);
+export default function RoutePlanner({ stations, onPlanRoute, onClearRoute, onRouteUpdate, routeActive, onStartCharge, userSoc }) {
+  const [soc, setSoc] = useState(userSoc);
+  
+  // Sync state if userSoc changes globally
+  useEffect(() => {
+    setSoc(userSoc);
+  }, [userSoc]);
+
   const [stops, setStops] = useState([]);
+  const [routePath, setRoutePath] = useState([]);
   
   // Destination search state
   const [fromQuery, setFromQuery] = useState('Lucknow, UP');
@@ -189,6 +196,7 @@ export default function RoutePlanner({ stations, onPlanRoute, onClearRoute, onRo
       let plannedStops = [];
       let totalDist = 0;
       let driveTimeMins = 0;
+      let routePathCoords = [];
 
       try {
         const response = await fetch('http://localhost:8085/api/route', {
@@ -204,14 +212,17 @@ export default function RoutePlanner({ stations, onPlanRoute, onClearRoute, onRo
         const data = await response.json();
         plannedStops = data.suggestedStops;
         totalDist = data.totalDistanceKm;
+        routePathCoords = data.routeCoords || [];
       } catch (error) {
         console.warn('⚠️ Route optimization API offline, using local heuristics fallback');
         const result = planEVRoute(fromQuery, toQuery, soc, stations);
         plannedStops = result.suggestedStops;
         totalDist = result.totalDistanceKm;
+        routePathCoords = getRouteSegment(fromQuery, toQuery);
       }
       
       setStops(plannedStops);
+      setRoutePath(routePathCoords);
 
       // Travel time at average 80 km/h speed + charging durations
       driveTimeMins = Math.round((totalDist / 80) * 60);
@@ -224,9 +235,8 @@ export default function RoutePlanner({ stations, onPlanRoute, onClearRoute, onRo
       });
       
       // Dynamic live update of route line coordinates on map
-      const segment = getRouteSegment(fromQuery, toQuery);
       if (onRouteUpdate) {
-        onRouteUpdate(segment);
+        onRouteUpdate(routePathCoords);
       }
     };
 
@@ -234,8 +244,7 @@ export default function RoutePlanner({ stations, onPlanRoute, onClearRoute, onRo
   }, [fromQuery, toQuery, soc, stations, onRouteUpdate]);
 
   const handlePlanClick = () => {
-    const segment = getRouteSegment(fromQuery, toQuery);
-    onPlanRoute(segment);
+    onPlanRoute(routePath);
   };
 
   return (

@@ -1,4 +1,3 @@
-version: '3.8'
 
 services:
   # Main Database: PostgreSQL with PostGIS extension for geospatial operations
@@ -32,7 +31,7 @@ services:
 
   # MQTT Broker for physical charger telemetry heartbeat signals
   mqtt-broker:
-    image: eclipse-mosquitto:2.0-alpine
+    image: eclipse-mosquitto:2.0
     container_name: evconnect-mqtt
     ports:
       - "1883:1883"      # MQTT Port

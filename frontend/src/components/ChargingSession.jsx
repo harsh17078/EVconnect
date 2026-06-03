@@ -31,25 +31,25 @@ export default function ChargingSession({ session, onStop }) {
   const co2 = (kwh * 0.71).toFixed(1);
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-8 animate-fade-in">
+    <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 animate-fade-in">
 
       {/* Offline badge */}
       {session.isOffline && (
-        <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-full px-4 py-1.5 mb-6">
+        <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-full px-3 md:px-4 py-1.5 mb-5 md:mb-6">
           <WifiOff className="w-3.5 h-3.5 text-amber-400" />
-          <span className="text-xs font-semibold text-amber-400">Edge Gateway — Offline Sync Active</span>
+          <span className="text-[10px] md:text-xs font-semibold text-amber-400">Edge Gateway — Offline Sync Active</span>
           <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
         </div>
       )}
 
       {/* Station Info */}
-      <div className="text-center mb-6">
-        <h3 className="text-lg font-bold text-white">{session.stationName}</h3>
+      <div className="text-center mb-5 md:mb-6 px-4">
+        <h3 className="text-base md:text-lg font-bold text-white">{session.stationName}</h3>
         <p className="text-xs text-slate-400 mt-1">{session.operator.toUpperCase()} Network • Connector CCS2</p>
       </div>
 
-      {/* Animated Charging Ring */}
-      <div className="relative w-48 h-48 mb-8">
+      {/* Animated Charging Ring — smaller on mobile */}
+      <div className="relative w-36 h-36 md:w-48 md:h-48 mb-6 md:mb-8">
         {/* Ambient glow */}
         <div className="absolute inset-4 rounded-full bg-sky-500/5 blur-xl" />
 
@@ -75,37 +75,37 @@ export default function ChargingSession({ session, onStop }) {
 
         {/* Center text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-4xl font-black font-display text-white drop-shadow-[0_0_16px_rgba(56,189,248,.4)]">
+          <span className="text-3xl md:text-4xl font-black font-display text-white drop-shadow-[0_0_16px_rgba(56,189,248,.4)]">
             {soc}%
           </span>
           <span className="text-xs text-sky-400 font-semibold mt-1">{power} kW</span>
         </div>
       </div>
 
-      {/* Live Metrics */}
-      <div className="grid grid-cols-4 gap-3 w-full max-w-md mb-8">
+      {/* Live Metrics — 2 cols on mobile, 4 on md+ */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 w-full max-w-sm md:max-w-md mb-6 md:mb-8 px-2 md:px-0">
         {[
-          { label: 'Energy', value: `${kwh} kWh`, icon: Zap, color: 'text-sky-400' },
-          { label: 'Cost',   value: `₹${cost}`, icon: Zap, color: 'text-violet-400' },
-          { label: 'CO₂ Saved', value: `${co2} kg`, icon: Leaf, color: 'text-emerald-400' },
-          { label: 'Time',   value: `${Math.floor(elapsed/60)}m ${elapsed%60}s`, icon: Zap, color: 'text-slate-300' },
+          { label: 'Energy',   value: `${kwh} kWh`,   icon: Zap,  color: 'text-sky-400' },
+          { label: 'Cost',     value: `₹${cost}`,     icon: Zap,  color: 'text-violet-400' },
+          { label: 'CO₂ Saved', value: `${co2} kg`,   icon: Leaf, color: 'text-emerald-400' },
+          { label: 'Time',     value: `${Math.floor(elapsed/60)}m ${elapsed%60}s`, icon: Zap, color: 'text-slate-300' },
         ].map(({ label, value, color }, i) => (
-          <div key={i} className="bg-white/[.03] border border-white/[.05] rounded-xl p-3 text-center">
-            <div className={`text-sm font-bold font-display ${color}`}>{value}</div>
+          <div key={i} className="bg-white/[.03] border border-white/[.05] rounded-xl p-2.5 md:p-3 text-center">
+            <div className={`text-xs md:text-sm font-bold font-display ${color}`}>{value}</div>
             <div className="text-[9px] text-slate-500 uppercase mt-0.5">{label}</div>
           </div>
         ))}
       </div>
 
       {/* Animated charge bar */}
-      <div className="w-full max-w-md h-1.5 rounded-full overflow-hidden bg-white/[.05] mb-6">
+      <div className="w-full max-w-sm md:max-w-md h-1.5 rounded-full overflow-hidden bg-white/[.05] mb-5 md:mb-6 px-2 md:px-0">
         <div className="h-full charge-bar rounded-full" style={{ width: `${soc}%`, transition: 'width .5s ease' }} />
       </div>
 
       {/* Stop Button */}
       <button
         onClick={() => onStop({ cost, kwh, soc })}
-        className="flex items-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm
+        className="flex items-center gap-2 px-6 md:px-8 py-2.5 md:py-3 rounded-xl font-semibold text-sm
           bg-rose-500/10 border border-rose-500/20 text-rose-400
           hover:bg-rose-500/20 hover:border-rose-500/30 transition-all active:scale-[.97]"
       >

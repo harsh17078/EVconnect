@@ -118,8 +118,8 @@ export default function LiveMap({ stations, selectedStation, onSelectStation, ro
       marker.on('click', () => onSelectStation(st));
 
       marker.bindTooltip(
-        `<div style="font-size:11px;font-weight:600;color:#e2e8f0">${st.name}</div>
-         <div style="font-size:10px;color:#94a3b8">${st.power} kW • ₹${st.price}/kWh • ${st.status.toUpperCase()}</div>`,
+        `<div class="tooltip-title" style="font-size:11px;font-weight:600;">${st.name}</div>
+         <div class="tooltip-desc" style="font-size:10px;">${st.power} kW • ₹${st.price}/kWh • ${st.status.toUpperCase()}</div>`,
         {
           direction: 'top',
           offset: [0, -size/2 - 4],

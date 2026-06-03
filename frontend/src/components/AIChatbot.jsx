@@ -10,7 +10,7 @@ const SUGGESTIONS = [
   { text: 'How do I pay across networks?', icon: CreditCard, color: 'text-emerald-400', bg: 'bg-emerald-500/[.06] border-emerald-500/15' },
 ];
 
-export default function AIChatbot({ balance = 1250, co2Total = 85.4 }) {
+export default function AIChatbot({ balance = 1250, co2Total = 85.4, userSoc = 72 }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
@@ -33,7 +33,7 @@ export default function AIChatbot({ balance = 1250, co2Total = 85.4 }) {
       let reply;
       if (lower.includes('reach') || lower.includes('range') || lower.includes('battery') || lower.includes('noida')) {
         const socMatch = lower.match(/(\d+)%?/);
-        const soc = socMatch ? parseInt(socMatch[1]) : 30;
+        const soc = socMatch ? parseInt(socMatch[1]) : userSoc;
         reply = AI_RESPONSES.range(soc, 'Noida');
       } else if (lower.includes('cheap') || lower.includes('cost') || lower.includes('price')) {
         reply = AI_RESPONSES.cheapest;
@@ -58,20 +58,20 @@ export default function AIChatbot({ balance = 1250, co2Total = 85.4 }) {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 md:space-y-6 animate-fade-in">
       
       {/* ─── Top Banner ─── */}
-      <div className="relative rounded-2xl overflow-hidden glass border-white/[.06] flex items-center justify-between p-6 h-36">
-        <div className="relative z-10 flex items-start gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-violet-600 to-sky-500 flex items-center justify-center shadow-lg shadow-violet-500/20">
-            <Sparkles className="w-6 h-6 text-white" />
+      <div className="relative rounded-2xl overflow-hidden glass border-white/[.06] flex items-center justify-between p-4 md:p-6 h-28 md:h-36">
+        <div className="relative z-10 flex items-start gap-3 md:gap-4">
+          <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-gradient-to-tr from-violet-600 to-sky-500 flex items-center justify-center shadow-lg shadow-violet-500/20 shrink-0">
+            <Sparkles className="w-5 h-5 md:w-6 md:h-6 text-white" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+            <h3 className="text-base md:text-lg font-bold text-white flex items-center gap-2">
               AI Charging Assistant
             </h3>
-            <p className="text-xs text-slate-400 mt-0.5">Powered by EVConnect LLM</p>
-            <div className="flex items-center gap-4 mt-3 text-[10px] text-slate-500">
+            <p className="text-[10px] md:text-xs text-slate-400 mt-0.5">Powered by EVConnect LLM</p>
+            <div className="hidden sm:flex items-center gap-4 mt-3 text-[10px] text-slate-500">
               <span className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-blink" />
                 Last System Check: 5 min ago
@@ -88,16 +88,16 @@ export default function AIChatbot({ balance = 1250, co2Total = 85.4 }) {
         
         {/* Banner image layout right side */}
         <div className="absolute right-0 top-0 bottom-0 w-[45%] overflow-hidden pointer-events-none hidden md:block">
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0d1326] via-[#0d1326]/40 to-transparent z-10" />
+          <div className="absolute inset-0 banner-gradient z-10" />
           <img src={evBanner} alt="EV Charging" className="w-full h-full object-cover object-center opacity-85" />
         </div>
       </div>
 
-      {/* ─── Center Panels (2 Columns) ─── */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-stretch">
+      {/* ─── Center Panels (2 Columns on md+, stacked on mobile) ─── */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-5 items-stretch">
         
         {/* Left Column: Chat or Intro Box */}
-        <div className="md:col-span-7 glass border-white/[.06] rounded-2xl p-5 min-h-[300px] flex flex-col justify-between">
+        <div className="md:col-span-7 glass border-white/[.06] rounded-2xl p-4 md:p-5 min-h-[250px] md:min-h-[300px] flex flex-col justify-between">
           {messages.length === 0 ? (
             // Landing intro card
             <div className="space-y-4">
@@ -119,15 +119,15 @@ export default function AIChatbot({ balance = 1250, co2Total = 85.4 }) {
             </div>
           ) : (
             // Chat history messages list
-            <div className="flex-1 overflow-y-auto pr-1 space-y-4 max-h-[320px]">
+            <div className="flex-1 overflow-y-auto pr-1 space-y-4 max-h-[260px] md:max-h-[320px]">
               {messages.map((msg, i) => (
-                <div key={i} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''} animate-slide-up`}>
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                <div key={i} className={`flex gap-2 md:gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''} animate-slide-up`}>
+                  <div className={`w-7 h-7 md:w-8 md:h-8 rounded-lg flex items-center justify-center shrink-0 ${
                     msg.role === 'user' ? 'bg-sky-500/10 text-sky-400' : 'bg-violet-500/10 text-violet-400'
                   }`}>
-                    <Sparkles className="w-4 h-4" />
+                    <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4" />
                   </div>
-                  <div className={`max-w-[80%] px-4 py-2.5 rounded-xl text-xs leading-relaxed whitespace-pre-line ${
+                  <div className={`max-w-[85%] md:max-w-[80%] px-3 md:px-4 py-2 md:py-2.5 rounded-xl text-[11px] md:text-xs leading-relaxed whitespace-pre-line ${
                     msg.role === 'user'
                       ? 'bg-sky-500/20 text-sky-300 border border-sky-500/20'
                       : 'bg-white/[.02] border border-white/[.05] text-slate-300'
@@ -156,19 +156,19 @@ export default function AIChatbot({ balance = 1250, co2Total = 85.4 }) {
         </div>
 
         {/* Right Column: EV Overview Panel */}
-        <div className="md:col-span-5 glass border-white/[.06] rounded-2xl p-5 flex items-stretch">
-          <div className="grid grid-cols-12 gap-4 w-full">
+        <div className="md:col-span-5 glass border-white/[.06] rounded-2xl p-4 md:p-5 flex items-stretch">
+          <div className="grid grid-cols-12 gap-3 md:gap-4 w-full">
             
             {/* Battery Cylinder layout */}
             <div className="col-span-4 flex flex-col items-center justify-center relative py-2">
-              <div className="relative w-14 h-32 border-2 border-slate-700/80 rounded-2xl bg-slate-950 flex flex-col justify-end p-0.5 overflow-hidden shadow-[0_0_12px_rgba(0,0,0,0.4)]">
+              <div className="relative w-12 md:w-14 h-28 md:h-32 border-2 border-slate-700/80 rounded-2xl bg-slate-950 flex flex-col justify-end p-0.5 overflow-hidden shadow-[0_0_12px_rgba(0,0,0,0.4)]">
                 {/* Battery Cap */}
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4 h-1 bg-slate-700 rounded-b-md z-10" />
                 {/* Glow layer */}
                 <div className="absolute inset-0 bg-sky-500/5 blur-sm" />
                 {/* Energy liquid fill */}
                 <div className="w-full rounded-xl bg-gradient-to-t from-emerald-500 via-emerald-400 to-emerald-300 shadow-[0_-4px_16px_rgba(52,211,153,0.5)] transition-all duration-1000"
-                  style={{ height: '72%' }}
+                  style={{ height: `${userSoc}%` }}
                 />
               </div>
             </div>
@@ -185,13 +185,13 @@ export default function AIChatbot({ balance = 1250, co2Total = 85.4 }) {
                   <span className="text-[10px] text-slate-500 font-semibold">Est. Range</span>
                 </div>
                 <div className="flex justify-between items-baseline mb-2">
-                  <span className="text-xl font-black font-display text-white">72%</span>
-                  <span className="text-sm font-extrabold font-display text-slate-200">218 km</span>
+                  <span className="text-lg md:text-xl font-black font-display text-white">{userSoc}%</span>
+                  <span className="text-sm font-extrabold font-display text-slate-200">{Math.round(437 * userSoc / 100)} km</span>
                 </div>
 
                 {/* Range progress bar */}
-                <div className="w-full h-1.5 rounded-full bg-white/[.05] overflow-hidden mb-4">
-                  <div className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full" style={{ width: '72%' }} />
+                <div className="w-full h-1.5 rounded-full bg-white/[.05] overflow-hidden mb-3 md:mb-4">
+                  <div className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full" style={{ width: `${userSoc}%` }} />
                 </div>
 
                 <div className="space-y-2.5">
@@ -225,14 +225,14 @@ export default function AIChatbot({ balance = 1250, co2Total = 85.4 }) {
       </div>
 
       {/* ─── Suggestion Pills Row ─── */}
-      <div className="flex gap-2.5 overflow-x-auto py-1">
+      <div className="flex gap-2 md:gap-2.5 overflow-x-auto py-1 -mx-1 px-1 scrollbar-hide">
         {SUGGESTIONS.map(({ text, icon: Icon, color, bg }, i) => (
           <button
             key={i}
             onClick={() => handleSend(text)}
-            className={`flex items-center gap-2 text-[11px] font-semibold border rounded-full px-4 py-2.5 whitespace-nowrap hover:bg-white/[.04] transition-all cursor-pointer ${bg}`}
+            className={`flex items-center gap-1.5 md:gap-2 text-[10px] md:text-[11px] font-semibold border rounded-full px-3 md:px-4 py-2 md:py-2.5 whitespace-nowrap hover:bg-white/[.04] transition-all cursor-pointer ${bg}`}
           >
-            <Icon className={`w-3.5 h-3.5 ${color}`} />
+            <Icon className={`w-3 h-3 md:w-3.5 md:h-3.5 ${color} shrink-0`} />
             <span className="text-slate-300">{text}</span>
           </button>
         ))}
@@ -240,17 +240,17 @@ export default function AIChatbot({ balance = 1250, co2Total = 85.4 }) {
 
       {/* ─── Chat Input area ─── */}
       <div className="space-y-2">
-        <form onSubmit={handleSubmit} className="relative glass border-white/[.07] focus-within:border-sky-500/25 rounded-2xl p-3 flex flex-col justify-between h-28">
+        <form onSubmit={handleSubmit} className="relative glass border-white/[.07] focus-within:border-sky-500/25 rounded-2xl p-3 flex flex-col justify-between h-24 md:h-28">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value.slice(0, 500))}
             placeholder="Ask me anything about EV charging..."
-            className="w-full bg-transparent text-xs text-white placeholder-slate-500 outline-none resize-none h-14"
+            className="w-full bg-transparent text-xs text-white placeholder-slate-500 outline-none resize-none h-12 md:h-14"
           />
           <div className="flex justify-between items-center pt-2">
             <span className="text-[10px] text-slate-600 font-mono">{input.length} / 500</span>
             <div className="flex items-center gap-2">
-              <button type="button" className="p-2 rounded-xl text-slate-500 hover:text-slate-300 hover:bg-white/[.04] transition-colors">
+              <button type="button" className="p-1.5 md:p-2 rounded-xl text-slate-500 hover:text-slate-300 hover:bg-white/[.04] transition-colors">
                 <Mic className="w-4 h-4" />
               </button>
               <button
