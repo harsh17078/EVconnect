@@ -358,7 +358,9 @@ export default function App() {
         {/* Collapse toggle */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="h-10 flex items-center justify-center border-t border-white/[.05] text-slate-500 hover:text-white transition-colors"
+          className={`h-10 flex items-center justify-center border-t border-white/[.05] text-slate-500 transition-colors ${
+            theme === 'light' ? 'hover:text-slate-900 hover:bg-slate-900/5' : 'hover:text-white'
+          }`}
         >
           {sidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
         </button>
@@ -369,7 +371,7 @@ export default function App() {
 
         {/* Top Bar */}
         <header className={`h-14 shrink-0 flex items-center justify-between px-5 border-b border-white/[.05] ${
-          theme === 'light' ? 'bg-white/60' : 'bg-[#080c17]/60'
+          theme === 'light' ? 'bg-white/70' : 'bg-[#080c17]/60'
         } backdrop-blur-xl z-40`}>
           <div className="flex items-center gap-3">
             <h2 className="text-sm font-bold text-white">
@@ -428,14 +430,22 @@ export default function App() {
                 <button
                   onClick={() => setFilterOp('all')}
                   className={`text-[11px] font-semibold px-3 py-1.5 rounded-lg border backdrop-blur-md transition-all ${
-                    filterOp === 'all' ? 'bg-sky-500/20 border-sky-500/30 text-sky-400' : 'bg-slate-900/70 border-white/[.06] text-slate-400 hover:text-white'
+                    filterOp === 'all'
+                      ? 'bg-sky-500/20 border-sky-500/30 text-sky-400'
+                      : theme === 'light'
+                        ? 'bg-white/80 border-slate-300/60 text-slate-600 hover:text-slate-900'
+                        : 'bg-slate-900/70 border-white/[.06] text-slate-400 hover:text-white'
                   }`}
                 >All Networks</button>
                 {OPERATORS.map(op => (
                   <button key={op.id}
                     onClick={() => setFilterOp(filterOp === op.id ? 'all' : op.id)}
                     className={`text-[11px] font-semibold px-3 py-1.5 rounded-lg border backdrop-blur-md transition-all ${
-                      filterOp === op.id ? 'bg-sky-500/20 border-sky-500/30 text-sky-400' : 'bg-slate-900/70 border-white/[.06] text-slate-400 hover:text-white'
+                      filterOp === op.id
+                        ? 'bg-sky-500/20 border-sky-500/30 text-sky-400'
+                        : theme === 'light'
+                          ? 'bg-white/80 border-slate-300/60 text-slate-600 hover:text-slate-900'
+                          : 'bg-slate-900/70 border-white/[.06] text-slate-400 hover:text-white'
                     }`}
                   >{op.logo} {op.name.split(' ')[0]}</button>
                 ))}
@@ -635,7 +645,9 @@ export default function App() {
 
         {/* Global Charging session overlay */}
         {chargingSession && (
-          <div className="absolute inset-0 z-[1300] bg-[#06080f]/95 backdrop-blur-sm flex items-center justify-center">
+          <div className={`absolute inset-0 z-[1300] backdrop-blur-sm flex items-center justify-center ${
+            theme === 'light' ? 'bg-white/80' : 'bg-[#06080f]/95'
+          }`}>
             <div className="w-full max-w-lg">
               <ChargingSession session={chargingSession} onStop={onStopCharge} />
             </div>

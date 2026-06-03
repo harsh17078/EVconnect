@@ -51,7 +51,20 @@ const getCityIndex = (query, defaultIdx) => {
   return defaultIdx;
 };
 
+const getCityKey = (query) => {
+  if (!query) return null;
+  const q = query.toLowerCase();
+  for (const city of Object.keys(CITY_KMS)) {
+    if (q.includes(city)) return city;
+  }
+  return null;
+};
+
 const getRouteSegment = (from, to) => {
+  const startKey = getCityKey(from);
+  const endKey = getCityKey(to);
+  if (!startKey || !endKey || startKey === endKey) return [];
+
   const startIdx = getCityIndex(from, 0);
   const endIdx = getCityIndex(to, 13);
 
@@ -64,6 +77,15 @@ const getRouteSegment = (from, to) => {
 const planEVRoute = (from, to, startSoc, stationsList) => {
   const f = (from || '').toLowerCase();
   const t = (to || '').toLowerCase();
+
+  const startKey = getCityKey(f);
+  const endKey = getCityKey(t);
+  if (!startKey || !endKey || startKey === endKey) {
+    return {
+      totalDistanceKm: 0,
+      suggestedStops: []
+    };
+  }
 
   let startKm = 0;
   let endKm = 500;
@@ -171,6 +193,10 @@ export default function RoutePlanner({ stations, onPlanRoute, onClearRoute, onRo
     timeMins: 0,
   });
 
+  const startKey = getCityKey(fromQuery);
+  const endKey = getCityKey(toQuery);
+  const isValidRouteInput = !!startKey && !!endKey && startKey !== endKey;
+
   // Suggestions filter
   const fromSuggestions = CITIES.filter(c => c.toLowerCase().includes(fromQuery.toLowerCase()));
   const toSuggestions = CITIES.filter(c => c.toLowerCase().includes(toQuery.toLowerCase()));
@@ -185,10 +211,20 @@ export default function RoutePlanner({ stations, onPlanRoute, onClearRoute, onRo
 
   // ── Auto-recalculate Stops & Slices on SOC or City inputs change ──
   useEffect(() => {
+    let cancelled = false;
+
     const runPlan = async () => {
-      let plannedStops = [];
-      let totalDist = 0;
-      let driveTimeMins = 0;
+      if (!isValidRouteInput) {
+        if (!cancelled) {
+          setStops([]);
+          setRouteStats({ distance: 0, stopsCount: 0, timeMins: 0 });
+          if (onRouteUpdate) onRouteUpdate([]);
+        }
+        return;
+      }
+
+      let plannedStops;
+      let totalDist;
 
       try {
         const response = await fetch('http://localhost:8085/api/route', {
@@ -204,17 +240,19 @@ export default function RoutePlanner({ stations, onPlanRoute, onClearRoute, onRo
         const data = await response.json();
         plannedStops = data.suggestedStops;
         totalDist = data.totalDistanceKm;
-      } catch (error) {
+      } catch {
         console.warn('⚠️ Route optimization API offline, using local heuristics fallback');
         const result = planEVRoute(fromQuery, toQuery, soc, stations);
         plannedStops = result.suggestedStops;
         totalDist = result.totalDistanceKm;
       }
+
+      if (cancelled) return;
       
       setStops(plannedStops);
 
       // Travel time at average 80 km/h speed + charging durations
-      driveTimeMins = Math.round((totalDist / 80) * 60);
+      const driveTimeMins = Math.round((totalDist / 80) * 60);
       const chargingTimeMins = plannedStops.reduce((sum, s) => sum + s.chargeMins, 0);
 
       setRouteStats({
@@ -231,9 +269,13 @@ export default function RoutePlanner({ stations, onPlanRoute, onClearRoute, onRo
     };
 
     runPlan();
-  }, [fromQuery, toQuery, soc, stations, onRouteUpdate]);
+    return () => {
+      cancelled = true;
+    };
+  }, [fromQuery, toQuery, soc, stations, onRouteUpdate, isValidRouteInput]);
 
   const handlePlanClick = () => {
+    if (!isValidRouteInput) return;
     const segment = getRouteSegment(fromQuery, toQuery);
     onPlanRoute(segment);
   };
@@ -335,13 +377,19 @@ export default function RoutePlanner({ stations, onPlanRoute, onClearRoute, onRo
 
       {/* Actions */}
       {!routeActive ? (
-        <button onClick={handlePlanClick} className="w-full h-10 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 bg-gradient-to-r from-sky-500 to-violet-500 text-white shadow-lg shadow-sky-500/15 hover:shadow-sky-500/30 transition-all active:scale-[.98] cursor-pointer">
+        <button onClick={handlePlanClick} disabled={!isValidRouteInput} className="w-full h-10 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 bg-gradient-to-r from-sky-500 to-violet-500 text-white shadow-lg shadow-sky-500/15 hover:shadow-sky-500/30 transition-all active:scale-[.98] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
           <Navigation className="w-4 h-4" /> Show Route on Map
         </button>
       ) : (
         <button onClick={onClearRoute} className="w-full h-10 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 bg-white/[.06] border border-white/10 text-slate-300 hover:bg-white/[.1] transition-all cursor-pointer">
           Hide Route from Map
         </button>
+      )}
+
+      {!isValidRouteInput && (
+        <p className="text-[10px] text-amber-400 mt-2">
+          Select two different supported corridor cities to generate a valid route.
+        </p>
       )}
 
       {/* Route Summary Stats Block */}
@@ -380,7 +428,7 @@ export default function RoutePlanner({ stations, onPlanRoute, onClearRoute, onRo
               <div className="text-[10px] text-slate-500">SOC: {soc}% • Range: ~{Math.round(437*soc/100)} km</div>
             </div>
 
-            {stops.map((stop, i) => (
+            {stops.map((stop) => (
               <div key={stop.id} className="relative animate-slide-up">
                 <div className="absolute -left-[24px] top-1 w-3 h-3 rounded-full bg-amber-400 ring-2 ring-amber-400/20 flex items-center justify-center">
                   <Zap className="w-1.5 h-1.5 text-slate-950" />
@@ -388,7 +436,7 @@ export default function RoutePlanner({ stations, onPlanRoute, onClearRoute, onRo
                 <div className="bg-white/[.03] border border-white/[.06] rounded-xl p-3">
                   <div className="flex justify-between items-start">
                     <div>
-                      <div className="text-xs font-semibold text-white">{stop.name.split('—')[0].trim()}</div>
+                      <div className="text-xs font-semibold text-white">{stop.name.split('—')[1]?.trim() || stop.name}</div>
                       <div className="text-[10px] text-slate-400 mt-0.5">{stop.power} kW • {stop.distKm} km from last segment • ~{stop.chargeMins} min charge</div>
                       <div className="text-[9px] text-amber-400 mt-1 flex items-center gap-1">
                         <span>Arrival SOC: {stop.arrivalSoc}%</span>
