@@ -86,15 +86,39 @@ const generateGlobalStations = (count) => {
   const fake = [];
   const operators = ['tata', 'statiq', 'chargezone', 'jiobp'];
   const prefixes = ['City', 'Highway', 'Central', 'Plaza', 'Express', 'Eco'];
+  
+  // Safe inland cluster centers to avoid oceans and international borders
+  const clusters = [
+    { lat: 28.6, lng: 77.2 }, // Delhi NCR
+    { lat: 19.1, lng: 72.9 }, // Mumbai
+    { lat: 12.9, lng: 77.6 }, // Bangalore
+    { lat: 17.4, lng: 78.4 }, // Hyderabad
+    { lat: 13.1, lng: 80.2 }, // Chennai
+    { lat: 23.0, lng: 72.6 }, // Ahmedabad
+    { lat: 18.5, lng: 73.8 }, // Pune
+    { lat: 26.9, lng: 75.8 }, // Jaipur
+    { lat: 26.8, lng: 80.9 }, // Lucknow
+    { lat: 21.1, lng: 79.0 }, // Nagpur
+    { lat: 22.7, lng: 75.9 }, // Indore
+    { lat: 11.0, lng: 77.0 }, // Coimbatore
+    { lat: 30.7, lng: 76.8 }, // Chandigarh
+  ];
+
   for (let i = 0; i < count; i++) {
     const op = operators[Math.floor(Math.random() * operators.length)];
     const status = Math.random() > 0.7 ? (Math.random() > 0.5 ? 'occupied' : 'reserved') : 'available';
+    
+    // Pick a random city and scatter stations within a ~150km radius
+    const center = clusters[Math.floor(Math.random() * clusters.length)];
+    const lat = center.lat + (Math.random() - 0.5) * 3.0; // +/- 1.5 degrees
+    const lng = center.lng + (Math.random() - 0.5) * 3.0;
+
     fake.push({
       id: `GLB-${Math.random().toString(36).substring(2, 9)}`,
       name: `${op.toUpperCase()} ${prefixes[Math.floor(Math.random()*prefixes.length)]} Hub`,
       operator: op,
-      lat: 10 + Math.random() * 20, // minLat: 10, maxLat: 30
-      lng: 70 + Math.random() * 20, // minLng: 70, maxLng: 90
+      lat: lat,
+      lng: lng,
       status: status,
       connector: 'CCS2',
       power: [60, 120, 150][Math.floor(Math.random() * 3)],

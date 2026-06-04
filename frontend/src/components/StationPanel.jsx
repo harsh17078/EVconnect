@@ -3,9 +3,9 @@ import { OPERATORS } from '../data/mockData';
 
 const STATUS_LABEL = {
   available: { text: 'Available', cls: 'chip-available' },
-  occupied:  { text: 'Occupied',  cls: 'chip-occupied' },
-  reserved:  { text: 'Reserved',  cls: 'chip-reserved' },
-  offline:   { text: 'Offline',   cls: 'chip-offline' },
+  occupied: { text: 'Occupied', cls: 'chip-occupied' },
+  reserved: { text: 'Reserved', cls: 'chip-reserved' },
+  offline: { text: 'Offline', cls: 'chip-offline' },
 };
 
 export default function StationPanel({ station, onClose, onStartCharge, onReserve, onCancelReservation, isCharging }) {
@@ -15,8 +15,8 @@ export default function StationPanel({ station, onClose, onStartCharge, onReserv
   const peakHour = station.forecast.findIndex(v => v === Math.max(...station.forecast));
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 z-[1200] animate-slide-up">
-      <div className="bg-slate-950 border-t border-white/10 rounded-t-3xl p-4 md:p-6 max-h-[80vh] md:max-h-[75vh] overflow-y-auto shadow-[0_-12px_40px_rgba(0,0,0,.5)]">
+    <div className="absolute inset-0 z-[1200] flex items-center justify-center p-4 sm:p-6 bg-black/40 backdrop-blur-sm animate-fade-in" onClick={onClose}>
+      <div className="panel-surface border border-white/10 rounded-3xl p-5 md:p-6 w-full max-w-[420px] max-h-[85vh] overflow-y-auto shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-start justify-between mb-5">
           <div className="flex-1 min-w-0">
@@ -34,9 +34,9 @@ export default function StationPanel({ station, onClose, onStartCharge, onReserv
         {/* Metrics Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-5">
           {[{ icon: Zap, label: 'Power', value: `${station.power} kW`, color: 'text-sky-400' },
-            { icon: Gauge, label: 'Rate', value: `₹${station.price}/kWh`, color: 'text-white' },
-            { icon: Clock, label: 'Wait', value: station.waitMin > 0 ? `${station.waitMin} min` : 'None', color: station.waitMin > 0 ? 'text-amber-400' : 'text-emerald-40' },
-            { icon: station.latency > 0 ? Wifi : WifiOff, label: 'Latency', value: station.latency > 0 ? `${station.latency}ms` : 'Down', color: station.latency > 0 ? 'text-white' : 'text-red-400' }].map(({ icon: Icon, label, value, color }, i) => (
+          { icon: Gauge, label: 'Rate', value: `₹${station.price}/kWh`, color: 'text-white' },
+          { icon: Clock, label: 'Wait', value: station.waitMin > 0 ? `${station.waitMin} min` : 'None', color: station.waitMin > 0 ? 'text-amber-400' : 'text-emerald-40' },
+          { icon: station.latency > 0 ? Wifi : WifiOff, label: 'Latency', value: station.latency > 0 ? `${station.latency}ms` : 'Down', color: station.latency > 0 ? 'text-white' : 'text-red-400' }].map(({ icon: Icon, label, value, color }, i) => (
             <div key={i} className="bg-white/[.03] border border-white/[.05] rounded-xl p-3 text-center">
               <Icon className={`w-4 h-4 mx-auto mb-1 ${color} opacity-70`} />
               <div className={`text-sm font-bold font-display ${color}`}>{value}</div>
@@ -59,7 +59,7 @@ export default function StationPanel({ station, onClose, onStartCharge, onReserv
                   <div className="w-full rounded-sm transition-all relative" style={{ height: `${Math.max(pct, 4)}%` }}>
                     <div className={`absolute inset-0 rounded-sm ${pct > 75 ? 'bg-rose-500/50' : pct > 40 ? 'bg-amber-500/50' : 'bg-emerald-500/50'}`} />
                   </div>
-                  <span className="text-[8px] text-slate-600">+{i+1}h</span>
+                  <span className="text-[8px] text-slate-400 font-medium">+{i + 1}h</span>
                 </div>
               ))}
             </div>

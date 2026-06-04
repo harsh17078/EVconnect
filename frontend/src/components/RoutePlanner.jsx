@@ -33,33 +33,36 @@ const getFallbackPlaces = (query) => {
 const searchPlaces = async (query) => {
   if (!query || query.trim().length < 2) return [];
   try {
-    // Switch to Photon API (also OSM based) to bypass Nominatim's strict rate limits
-    const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=6`;
+    // 1. Search specifically in India using a bounding box (bbox) to keep search terms highly relevant
+    // bbox=minLon,minLat,maxLon,maxLat for India roughly: 68.0,6.0,98.0,36.0
+    const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&bbox=68.0,6.0,98.0,36.0&limit=8`;
     const res = await fetch(url);
     if (!res.ok) throw new Error('API Error');
     const data = await res.json();
     
-    if (!data.features || data.features.length === 0) return getFallbackPlaces(query);
+    const indiaFeatures = (data.features || []).filter(f => f.properties.country === 'India');
     
-    return data.features.map(f => {
-      const p = f.properties;
-      // Build a display name based on available properties
-      const nameParts = [p.name, p.city || p.county, p.state, p.country].filter(Boolean);
-      // Remove exact duplicates from the array
-      const uniqueParts = [...new Set(nameParts)];
-      const displayName = uniqueParts.join(', ');
-      
-      return {
-        displayName: displayName,
-        shortName: p.name || uniqueParts[0],
-        // Photon uses [longitude, latitude] format
-        lat: f.geometry.coordinates[1],
-        lng: f.geometry.coordinates[0],
-        type: p.osm_value || 'place',
-      };
-    });
+    if (indiaFeatures.length > 0) {
+      return indiaFeatures.slice(0, 6).map(f => {
+        const p = f.properties;
+        const nameParts = [p.name, p.city || p.county, p.state, p.country].filter(Boolean);
+        const uniqueParts = [...new Set(nameParts)];
+        
+        return {
+          displayName: uniqueParts.join(', '),
+          shortName: p.name || uniqueParts[0],
+          lat: f.geometry.coordinates[1],
+          lng: f.geometry.coordinates[0],
+          type: p.osm_value || 'place',
+        };
+      });
+    }
+
+    // If nothing matches in the bounding box, assume it's outside coverage or a typo
+    return [{ isError: true, message: `Outside coverage. App is for India only.` }];
+    
   } catch (err) {
-    console.warn('Geocoding error or rate limit hit. Using fallback.', err);
+    console.warn('Geocoding error', err);
     return getFallbackPlaces(query);
   }
 };
@@ -541,35 +544,42 @@ export default function RoutePlanner({
               ) : (
                 <Search className="w-3.5 h-3.5 text-slate-500 absolute right-3 top-2.5 pointer-events-none" />
               )}
+              {fromSuggestions.length > 0 && fromSuggestions[0].isError && (
+                <div className="mt-2 px-2.5 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-md flex items-center gap-1.5 text-[10px] text-amber-500 font-medium w-full">
+                  <AlertTriangle className="w-3 h-3 shrink-0" />
+                  <div className="truncate">{fromSuggestions[0].message}</div>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Autocomplete Dropdown */}
-          {showFromList && fromSuggestions.length > 0 && (
-            <div className="absolute left-6 right-0 mt-1 z-[1200] glass border-white/10 rounded-lg shadow-xl max-h-52 overflow-y-auto">
+          {showFromList && fromSuggestions.length > 0 && !fromSuggestions[0].isError && (
+            <div className="absolute left-6 right-0 mt-1 z-[1200] suggestion-dropdown rounded-lg shadow-xl max-h-52 overflow-y-auto">
               {fromSuggestions.map((place, idx) => (
-                <button
-                  key={`${place.lat}-${place.lng}-${idx}`}
-                  onClick={() => handleFromSelect(place)}
-                  className="w-full text-left px-3.5 py-2.5 text-[11px] text-slate-300 hover:text-white hover:bg-white/[.06] transition-colors flex items-start gap-2 cursor-pointer border-b border-white/[.03] last:border-0"
-                >
-                  <MapPin className="w-3 h-3 text-sky-400 mt-0.5 shrink-0" />
-                  <div className="min-w-0">
-                    <div className="font-medium truncate">{place.shortName}</div>
-                    <div className="text-[9px] text-slate-500 truncate mt-0.5">{place.displayName}</div>
-                  </div>
-                </button>
+                  <button
+                    key={`${place.lat}-${place.lng}-${idx}`}
+                    onClick={() => handleFromSelect(place)}
+                    className="w-full text-left px-3.5 py-2.5 text-[11px] text-slate-300 hover:text-white hover:bg-white/[.06] transition-colors flex items-start gap-2 cursor-pointer border-b border-white/[.03] last:border-0"
+                  >
+                    <MapPin className="w-3 h-3 text-sky-400 mt-0.5 shrink-0" />
+                    <div className="min-w-0">
+                      <div className="font-medium truncate">{place.shortName}</div>
+                      <div className="text-[10px] text-slate-400 truncate mt-0.5">{place.displayName}</div>
+                    </div>
+                  </button>
               ))}
             </div>
           )}
           {showFromList && fromQuery.length >= 2 && fromSuggestions.length === 0 && !isSearchingFrom && (
-            <div className="absolute left-6 right-0 mt-1 z-[1200] glass border-white/10 rounded-lg shadow-xl px-3.5 py-3 text-[11px] text-slate-500">
+            <div className="absolute left-6 right-0 mt-1 z-[1200] suggestion-dropdown rounded-lg shadow-xl px-3.5 py-3 text-[11px] text-slate-500">
               No places found. Try a different search term.
             </div>
           )}
         </div>
 
-        <div className="ml-1.5 border-l border-dashed border-sky-500/20 h-4" />
+        {/* Sleek Gradient Connector */}
+        <div className="ml-[5px] w-0.5 h-5 bg-gradient-to-b from-sky-400/40 via-slate-500/20 to-emerald-400/40 rounded-full my-1" />
 
         {/* To City input */}
         <div className="relative">
@@ -590,29 +600,35 @@ export default function RoutePlanner({
               ) : (
                 <Search className="w-3.5 h-3.5 text-slate-500 absolute right-3 top-2.5 pointer-events-none" />
               )}
+              {toSuggestions.length > 0 && toSuggestions[0].isError && (
+                <div className="mt-2 px-2.5 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-md flex items-center gap-1.5 text-[10px] text-amber-500 font-medium w-full">
+                  <AlertTriangle className="w-3 h-3 shrink-0" />
+                  <div className="truncate">{toSuggestions[0].message}</div>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Autocomplete Dropdown */}
-          {showToList && toSuggestions.length > 0 && (
-            <div className="absolute left-6 right-0 mt-1 z-[1200] glass border-white/10 rounded-lg shadow-xl max-h-52 overflow-y-auto">
+          {showToList && toSuggestions.length > 0 && !toSuggestions[0].isError && (
+            <div className="absolute left-6 right-0 mt-1 z-[1200] suggestion-dropdown rounded-lg shadow-xl max-h-52 overflow-y-auto">
               {toSuggestions.map((place, idx) => (
-                <button
-                  key={`${place.lat}-${place.lng}-${idx}`}
-                  onClick={() => handleToSelect(place)}
-                  className="w-full text-left px-3.5 py-2.5 text-[11px] text-slate-300 hover:text-white hover:bg-white/[.06] transition-colors flex items-start gap-2 cursor-pointer border-b border-white/[.03] last:border-0"
-                >
-                  <MapPin className="w-3 h-3 text-emerald-400 mt-0.5 shrink-0" />
-                  <div className="min-w-0">
-                    <div className="font-medium truncate">{place.shortName}</div>
-                    <div className="text-[9px] text-slate-500 truncate mt-0.5">{place.displayName}</div>
-                  </div>
-                </button>
+                  <button
+                    key={`${place.lat}-${place.lng}-${idx}`}
+                    onClick={() => handleToSelect(place)}
+                    className="w-full text-left px-3.5 py-2.5 text-[11px] text-slate-300 hover:text-white hover:bg-white/[.06] transition-colors flex items-start gap-2 cursor-pointer border-b border-white/[.03] last:border-0"
+                  >
+                    <MapPin className="w-3 h-3 text-emerald-400 mt-0.5 shrink-0" />
+                    <div className="min-w-0">
+                      <div className="font-medium truncate">{place.shortName}</div>
+                      <div className="text-[10px] text-slate-400 truncate mt-0.5">{place.displayName}</div>
+                    </div>
+                  </button>
               ))}
             </div>
           )}
           {showToList && toQuery.length >= 2 && toSuggestions.length === 0 && !isSearchingTo && (
-            <div className="absolute left-6 right-0 mt-1 z-[1200] glass border-white/10 rounded-lg shadow-xl px-3.5 py-3 text-[11px] text-slate-500">
+            <div className="absolute left-6 right-0 mt-1 z-[1200] suggestion-dropdown rounded-lg shadow-xl px-3.5 py-3 text-[11px] text-slate-500">
               No places found. Try a different search term.
             </div>
           )}

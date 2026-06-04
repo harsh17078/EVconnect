@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import {
   MapPin, Navigation, Wallet, Bot, Zap, Activity,
-  ChevronLeft, ChevronRight, Search, Leaf, Sun, Moon, Menu, X,
+  ChevronLeft, ChevronRight, Search, Leaf, Sun, Moon, Menu, X, PanelLeftClose, PanelLeftOpen,
 } from 'lucide-react';
 import { io as socketIO } from 'socket.io-client';
 import LiveMap from './components/LiveMap';
@@ -92,6 +92,7 @@ export default function App() {
   const [plannedRoutePath, setPlannedRoutePath] = useState([]);
   const [userSoc, setUserSoc] = useState(72);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(true);
 
   // Route planner state — lifted here so it persists across tab switches
   const [routeFromQuery, setRouteFromQuery] = useState('');
@@ -366,12 +367,16 @@ export default function App() {
 
         {/* Vehicle Selector */}
         {(sidebarOpen || mobileDrawerOpen) && (
-          <div className="px-4 py-3 border-t border-white/[.05]">
+          <div className={`px-4 py-3 border-t ${theme === 'light' ? 'border-slate-200' : 'border-white/[.05]'}`}>
             <div className="text-slate-500 uppercase tracking-widest text-[9px] font-bold mb-2">My Vehicle</div>
             <select
               value={selectedVehicle.id}
               onChange={(e) => setSelectedVehicle(VEHICLES.find(v => v.id === e.target.value) || VEHICLES[0])}
-              className="w-full bg-slate-900 border border-white/10 text-white text-xs rounded-lg px-2 py-1.5 outline-none focus:border-sky-500/50"
+              className={`w-full text-xs rounded-lg px-2 py-1.5 outline-none transition-colors ${
+                theme === 'light' 
+                  ? 'bg-slate-100 border border-slate-200 text-slate-900 focus:border-sky-500'
+                  : 'bg-slate-900 border border-white/10 text-white focus:border-sky-500/50'
+              }`}
             >
               {VEHICLES.map(v => (
                 <option key={v.id} value={v.id}>{v.name}</option>
@@ -444,7 +449,7 @@ export default function App() {
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className="hidden md:flex h-10 items-center justify-center border-t border-white/[.05] text-slate-500 hover:text-white transition-colors"
         >
-          {sidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          {sidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
         </button>
       </aside>
 
@@ -662,9 +667,9 @@ export default function App() {
 
           {/* ── STATIONS TAB ── */}
           {activeTab === 'stations' && (
-            <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6">
+            <div className={`flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6 ${!routeActive ? 'flex items-center justify-center' : ''}`}>
               {!routeActive ? (
-                <div className="flex flex-col items-center justify-center h-full text-center max-w-sm mx-auto space-y-4 animate-fade-in mt-20">
+                <div className="flex flex-col items-center justify-center text-center max-w-sm mx-auto space-y-4 animate-fade-in -mt-10">
                   <div className="w-16 h-16 bg-sky-500/10 rounded-full flex items-center justify-center border border-sky-500/20 mb-2">
                     <Navigation className="w-8 h-8 text-sky-400" />
                   </div>
@@ -702,7 +707,7 @@ export default function App() {
                     {stationsProp.map(st => {
                     const op = OPERATORS.find(o => o.id === st.operator);
                     return (
-                      <div key={st.id} className="glass-highlight rounded-2xl p-4 md:p-5 flex flex-col justify-between space-y-4 hover:border-white/10 transition-colors animate-slide-up">
+                      <div key={st.id} onClick={() => setSelectedStation(st)} className="cursor-pointer glass-highlight rounded-2xl p-4 md:p-5 flex flex-col justify-between space-y-4 hover:border-white/10 transition-colors animate-slide-up">
                         <div>
                           <div className="flex justify-between items-start mb-2">
                             <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: op?.accent }}>
@@ -743,40 +748,6 @@ export default function App() {
                             <span className={st.faultRisk > 50 ? 'text-rose-400 font-bold animate-pulse' : 'text-slate-300'}>{st.faultRisk}%</span>
                           </div>
                         </div>
-
-                        {/* Action buttons */}
-                        <div className="flex gap-2 pt-2">
-                          {st.status === 'available' && (
-                            <>
-                              <button onClick={() => onStartCharge(st)} className="flex-1 h-9 rounded-xl text-xs font-bold bg-sky-500 text-slate-950 hover:bg-sky-400 transition-colors cursor-pointer">
-                                Charge
-                              </button>
-                              <button onClick={() => onReserve(st)} className="h-9 px-3 rounded-xl text-xs font-semibold glass border-white/10 text-slate-300 hover:bg-white/[.05] transition-colors cursor-pointer">
-                                Reserve
-                              </button>
-                            </>
-                          )}
-                          {st.status === 'occupied' && (
-                            <div className="flex-1 py-2 text-center rounded-xl text-[10px] bg-rose-500/10 text-rose-400 border border-rose-500/15">
-                              🔒 Occupied — wait {st.waitMin}m
-                            </div>
-                          )}
-                          {st.status === 'reserved' && (
-                            <div className="flex items-center gap-2 w-full">
-                              <div className="flex-1 py-2 text-center rounded-xl text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/15">
-                                🕒 Reserved — {st.waitMin} min
-                              </div>
-                              <button onClick={() => handleCancelReservation(st)} className="h-9 px-3 rounded-xl text-xs font-semibold glass border-white/10 text-amber-400 hover:bg-white/[.06] transition-colors cursor-pointer">
-                                Cancel
-                              </button>
-                            </div>
-                          )}
-                          {st.status === 'offline' && (
-                            <button onClick={() => onStartCharge(st)} className="flex-1 h-9 rounded-xl text-xs font-semibold bg-amber-500/15 border border-amber-500/25 text-amber-400 hover:bg-amber-500/25 transition-colors cursor-pointer">
-                              Edge Offline Charge
-                            </button>
-                          )}
-                        </div>
                       </div>
                     );
                   })}
@@ -816,6 +787,46 @@ export default function App() {
             onCancelReservation={handleCancelReservation}
             isCharging={!!chargingSession}
           />
+        )}
+
+        {/* Hackathon Welcome Pitch Modal */}
+        {showWelcome && (
+          <div className={`absolute inset-0 z-[2000] backdrop-blur-md flex items-center justify-center p-4 ${theme === 'light' ? 'bg-[#f8fafc]/80' : 'bg-[#080c17]/80'}`}>
+            <div className="glass max-w-md w-full rounded-2xl p-6 md:p-8 shadow-2xl border border-sky-500/20 animate-slide-up relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-sky-400 to-emerald-400" />
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-sky-500/10 flex items-center justify-center border border-sky-500/20">
+                  <Zap className="w-5 h-5 text-sky-400" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-emerald-400">EVConnect</h2>
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">ET AutoTech Hackathon 2026</div>
+                </div>
+              </div>
+              
+              <div className="space-y-4 mb-6">
+                <div className="bg-white/[.02] border border-white/[.05] rounded-xl p-3">
+                  <h3 className="text-xs font-bold text-white mb-1">The Problem</h3>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">EV owners suffer from "Range Anxiety" and app fatigue, needing dozens of different apps just to pay at different charging stations.</p>
+                </div>
+                <div className="bg-white/[.02] border border-white/[.05] rounded-xl p-3">
+                  <h3 className="text-xs font-bold text-emerald-400 mb-1">Our Solution</h3>
+                  <ul className="text-[11px] text-slate-400 leading-relaxed space-y-1.5 list-disc pl-4">
+                    <li><strong className="text-slate-200">AI Route Planner:</strong> Calculates exact battery drops and safely routes you to mid-way charging stops.</li>
+                    <li><strong className="text-slate-200">Unified Roaming Wallet:</strong> Pay across Tata, Statiq, and ChargeZone using one single balance.</li>
+                    <li><strong className="text-slate-200">Live IoT Telemetry:</strong> Real-time hardware monitoring via WebSockets.</li>
+                  </ul>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowWelcome(false)}
+                className="w-full py-3 rounded-xl text-sm font-bold bg-gradient-to-r from-sky-500 to-emerald-500 text-white shadow-lg shadow-sky-500/20 hover:shadow-sky-500/40 transition-all active:scale-[0.98] cursor-pointer"
+              >
+                Launch Prototype Demo
+              </button>
+            </div>
+          </div>
         )}
       </main>
 
