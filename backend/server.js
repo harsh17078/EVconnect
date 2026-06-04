@@ -380,10 +380,26 @@ app.post('/api/route', async (req, res) => {
     }
   });
 
-  // Dynamically generate highway chargers if fewer than 3 are present on the route
-  if (stationsAlongRoute.length < 3) {
-    const numToGen = Math.max(2, Math.floor(totalDistanceKm / 120));
-    console.log(`[Routing Engine] Found only ${stationsAlongRoute.length} stations. Generating ${numToGen} dynamic highway chargers...`);
+  // Sort stations sequence by their index on route to check gaps
+  stationsAlongRoute.sort((a, b) => a.routeIndex - b.routeIndex);
+
+  let hasLargeGap = false;
+  let lastKm = 0;
+  for (const s of stationsAlongRoute) {
+    if (s.km - lastKm > 150) {
+      hasLargeGap = true;
+      break;
+    }
+    lastKm = s.km;
+  }
+  if (totalDistanceKm - lastKm > 150) {
+    hasLargeGap = true;
+  }
+
+  // Dynamically generate highway chargers if fewer than 5 are present or there is a large gap
+  if (stationsAlongRoute.length < 5 || hasLargeGap) {
+    const numToGen = Math.max(3, Math.floor(totalDistanceKm / 110));
+    console.log(`[Routing Engine] Only ${stationsAlongRoute.length} stations found, or gap detected. Generating ${numToGen} dynamic highway chargers...`);
     const newStations = [];
 
     for (let j = 1; j <= numToGen; j++) {
