@@ -206,11 +206,11 @@ const generateFakeStationsAlongRoute = (routeCoords, distanceKm) => {
 };
 
 // ── EV Charging Stop Planner using route-aware station positions ──
-const planEVStops = (routeCoords, totalDistanceKm, startSoc, stationsList) => {
+const planEVStops = (routeCoords, totalDistanceKm, startSoc, stationsList, selectedVehicle) => {
   if (!routeCoords || routeCoords.length < 2 || totalDistanceKm === 0) return [];
 
-  const maxRange = 437; // Tata Nexon EV Max range in km
-  const batteryCapacity = 40.5; // kWh
+  const maxRange = selectedVehicle ? selectedVehicle.range : 437; 
+  const batteryCapacity = selectedVehicle ? selectedVehicle.battery : 40.5;
 
   // Find stations actually along this route polyline
   const stationsAlongRoute = findStationsAlongRoute(routeCoords, stationsList);
@@ -287,7 +287,7 @@ export default function RoutePlanner({
   stations, onPlanRoute, onClearRoute, onRouteUpdate, routeActive, onStartCharge, userSoc, onSocChange,
   fromQuery, toQuery, fromCoords, toCoords,
   onFromQueryChange, onToQueryChange, onFromCoordsChange, onToCoordsChange,
-  onStopsComputed,
+  onStopsComputed, selectedVehicle,
 }) {
   const stationsRef = useRef(stations);
   useEffect(() => {
@@ -387,7 +387,7 @@ export default function RoutePlanner({
         const allStationsAlongRoute = findStationsAlongRoute(routeCoords, combinedStations);
 
         // Plan EV charging stops using the combined stations
-        const plannedStops = planEVStops(routeCoords, distanceKm, soc, combinedStations);
+        const plannedStops = planEVStops(routeCoords, distanceKm, soc, combinedStations, selectedVehicle);
         
         setStops(plannedStops);
 
@@ -483,7 +483,7 @@ export default function RoutePlanner({
   const arrivalSoc = (() => {
     if (!routeStats.distance || !soc) return null;
     let currentSocCalc = soc;
-    const maxRange = 437;
+    const maxRange = selectedVehicle ? selectedVehicle.range : 437;
     // Subtract driving SOC usage
     let lastKm = 0;
     for (const stop of stops) {
@@ -503,6 +503,21 @@ export default function RoutePlanner({
       <div className="flex items-center gap-2 mb-4">
         <Route className="w-5 h-5 text-sky-400" />
         <h3 className="font-bold text-sm text-white">Smart Route Planner</h3>
+      </div>
+
+      <div className="flex justify-between items-center bg-white/[.02] border border-white/[.04] p-3 md:p-4 rounded-2xl mb-4 md:mb-5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-sky-500/10 flex items-center justify-center border border-sky-500/20 shrink-0">
+              <Battery className="w-5 h-5 text-sky-400" />
+            </div>
+            <div>
+              <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Your Vehicle</div>
+              <div className="font-semibold text-white text-sm mt-0.5 flex items-center gap-2">
+                <span>{selectedVehicle ? selectedVehicle.name : 'EV Model'}</span>
+                <span className="text-[9px] bg-white/10 px-1.5 py-0.5 rounded text-slate-300">{selectedVehicle ? selectedVehicle.connector : 'CCS2'}</span>
+              </div>
+            </div>
+          </div>
       </div>
 
       {/* Dynamic From/To Inputs with Nominatim Autocomplete */}

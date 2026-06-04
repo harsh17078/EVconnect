@@ -10,7 +10,7 @@ import ChargingSession from './components/ChargingSession';
 import RoutePlanner from './components/RoutePlanner';
 import WalletPanel from './components/WalletPanel';
 import AIChatbot from './components/AIChatbot';
-import { STATIONS, OPERATORS } from './data/mockData';
+import { STATIONS, OPERATORS, VEHICLES } from './data/mockData';
 
 const INDIA_POLYGON = [
   [34.5, 74.0], // J&K West
@@ -102,6 +102,7 @@ export default function App() {
   const [routeFromCoords, setRouteFromCoords] = useState(null);
   const [routeToCoords, setRouteToCoords] = useState(null);
   const [routeStations, setRouteStations] = useState([]);
+  const [selectedVehicle, setSelectedVehicle] = useState(VEHICLES[0]);
 
   const stationsProp = routeActive && routeStations.length > 0 ? routeStations : stations;
 
@@ -340,6 +341,22 @@ export default function App() {
             </button>
           ))}
         </nav>
+
+        {/* Vehicle Selector */}
+        {(sidebarOpen || mobileDrawerOpen) && (
+          <div className="px-4 py-3 border-t border-white/[.05]">
+            <div className="text-slate-500 uppercase tracking-widest text-[9px] font-bold mb-2">My Vehicle</div>
+            <select
+              value={selectedVehicle.id}
+              onChange={(e) => setSelectedVehicle(VEHICLES.find(v => v.id === e.target.value) || VEHICLES[0])}
+              className="w-full bg-slate-900 border border-white/10 text-white text-xs rounded-lg px-2 py-1.5 outline-none focus:border-sky-500/50"
+            >
+              {VEHICLES.map(v => (
+                <option key={v.id} value={v.id}>{v.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Status Footer */}
         {(sidebarOpen || mobileDrawerOpen) && (
@@ -587,6 +604,7 @@ export default function App() {
                   onFromCoordsChange={setRouteFromCoords}
                   onToCoordsChange={setRouteToCoords}
                   onStopsComputed={setRouteStations}
+                  selectedVehicle={selectedVehicle}
                 />
               </div>
               {/* Map */}
@@ -750,7 +768,7 @@ export default function App() {
           {activeTab === 'ai' && (
             <div className="flex-1 overflow-y-auto pb-16 md:pb-0">
               <div className="max-w-5xl mx-auto p-4 md:p-6 w-full">
-                <AIChatbot balance={balance} co2Total={parseFloat(co2Total)} userSoc={userSoc} />
+                <AIChatbot balance={balance} co2Total={parseFloat(co2Total)} userSoc={userSoc} selectedVehicle={selectedVehicle} />
               </div>
             </div>
           )}

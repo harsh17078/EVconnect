@@ -10,7 +10,7 @@ const SUGGESTIONS = [
   { text: 'How do I pay across networks?', icon: CreditCard, color: 'text-emerald-400', bg: 'bg-emerald-500/[.06] border-emerald-500/15' },
 ];
 
-export default function AIChatbot({ balance = 1250, co2Total = 85.4, userSoc = 72 }) {
+export default function AIChatbot({ balance = 1250, co2Total = 85.4, userSoc = 72, selectedVehicle }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
@@ -34,7 +34,7 @@ export default function AIChatbot({ balance = 1250, co2Total = 85.4, userSoc = 7
       if (lower.includes('reach') || lower.includes('range') || lower.includes('battery') || lower.includes('noida')) {
         const socMatch = lower.match(/(\d+)%?/);
         const soc = socMatch ? parseInt(socMatch[1]) : userSoc;
-        reply = AI_RESPONSES.range(soc, 'Noida');
+        reply = AI_RESPONSES.range(soc, 'Noida', selectedVehicle);
       } else if (lower.includes('cheap') || lower.includes('cost') || lower.includes('price')) {
         reply = AI_RESPONSES.cheapest;
       } else if (lower.includes('offline') || lower.includes('internet') || lower.includes('edge')) {
@@ -186,7 +186,7 @@ export default function AIChatbot({ balance = 1250, co2Total = 85.4, userSoc = 7
                 </div>
                 <div className="flex justify-between items-baseline mb-2">
                   <span className="text-lg md:text-xl font-black font-display text-white">{userSoc}%</span>
-                  <span className="text-sm font-extrabold font-display text-slate-200">{Math.round(437 * userSoc / 100)} km</span>
+                  <span className="text-sm font-extrabold font-display text-slate-200">{selectedVehicle ? Math.round(selectedVehicle.range * userSoc / 100) : Math.round(437 * userSoc / 100)} km</span>
                 </div>
 
                 {/* Range progress bar */}
@@ -199,7 +199,7 @@ export default function AIChatbot({ balance = 1250, co2Total = 85.4, userSoc = 7
                     <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                     <div>
                       <div className="text-[9px] text-slate-500 uppercase font-semibold">Next Charging</div>
-                      <div className="text-[11px] text-white font-medium mt-0.5">Generic EV Model 3</div>
+                      <div className="text-[11px] text-white font-medium mt-0.5">{selectedVehicle ? selectedVehicle.name : 'Generic EV Model 3'}</div>
                     </div>
                   </div>
                 </div>

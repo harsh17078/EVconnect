@@ -83,11 +83,15 @@ export const ROUTE_PATH = [
 ];
 
 export const AI_RESPONSES = {
-  range: (soc, dest) =>
-    `Based on your Nexon EV Max (437 km range) at **${soc}% SOC** (~${Math.round(437*soc/100)} km remaining):\n\n` +
-    (437*soc/100 < 330
+  range: (soc, dest, vehicle) => {
+    const range = vehicle ? vehicle.range : 437;
+    const name = vehicle ? vehicle.name : 'Nexon EV Max';
+    const remaining = Math.round(range * soc / 100);
+    return `Based on your ${name} (${range} km range) at **${soc}% SOC** (~${remaining} km remaining):\n\n` +
+    (remaining < 330
       ? `❌ You **cannot** reach ${dest} directly (~330 km).\n\n💡 **Recommended stop**: Statiq Fast — Kanpur NH19 (80 km). Charge 18 min to 80% and continue.`
-      : `✅ You **can** reach ${dest} comfortably with ${Math.round(437*soc/100-330)} km to spare.`),
+      : `✅ You **can** reach ${dest} comfortably with ${remaining - 330} km to spare.`);
+  },
   offline: `When connectivity drops, **EVConnect's Edge Gateway** activates:\n\n1. 🔐 Local NFC/token authentication\n2. 📊 Energy metering continues locally\n3. 💾 Encrypted session logs stored on-device\n4. ☁️ Auto-sync when connection restores\n\nYour charging never stops.`,
   cheapest: `**Cheapest chargers right now:**\n\n1. ChargeZone Gomti Nagar — ₹15.0/kWh (AC)\n2. Tata Power Hazratganj — ₹18.5/kWh (DC)\n3. ChargeZone Yamuna — ₹19.0/kWh (DC)\n\n⚡ Night rates (11PM–6AM) are 10% cheaper.`,
   payment: `**VoltPass Unified Wallet** works across ALL networks:\n\n• One-tap QR scan at any charger\n• UPI, Cards, or Prepaid balance\n• Single monthly invoice across all CPOs\n• No separate operator accounts needed`,
