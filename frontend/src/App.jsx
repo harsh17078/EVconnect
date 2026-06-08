@@ -642,7 +642,6 @@ export default function App() {
                   selectedStation={selectedStation}
                   onSelectStation={(st) => {
                     setSelectedStation(st);
-                    setActiveTab('stations');
                   }}
                   routeActive={routeActive}
                   theme={theme}
@@ -688,8 +687,27 @@ export default function App() {
                 <div className="max-w-5xl mx-auto space-y-5 w-full">
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
                     <div>
-                      <h3 className="text-base md:text-lg font-bold text-white">Centralized Charging Hub</h3>
-                      <p className="text-xs text-slate-400 mt-1">Real-time status updates, sensor diagnostics, and reservation options.</p>
+                      {routeActive && routeFromQuery && routeToQuery ? (
+                        <>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 shadow-[0_0_10px_rgba(56,189,248,0.1)]">
+                              <Navigation className="w-3 h-3" /> Planned Route
+                            </span>
+                          </div>
+                          <h3 className="text-lg md:text-xl font-extrabold text-white flex items-center gap-2.5 flex-wrap">
+                            <span>{routeFromQuery.split(',')[0]}</span>
+                            <div className="w-6 h-[2px] bg-gradient-to-r from-sky-400 to-emerald-400 rounded-full" />
+                            <span>{routeToQuery.split(',')[0]}</span>
+                          </h3>
+                        </>
+                      ) : (
+                        <h3 className="text-base md:text-lg font-bold text-white">Centralized Charging Hub</h3>
+                      )}
+                      <p className="text-xs text-slate-400 mt-1.5">
+                        {routeActive 
+                          ? 'Showing EV chargers along your planned journey.'
+                          : 'Real-time status updates, sensor diagnostics, and reservation options.'}
+                      </p>
                     </div>
                     <div className="flex gap-3 shrink-0">
                       <div className="glass border-white/[.05] rounded-xl px-3 md:px-4 py-2 text-center">

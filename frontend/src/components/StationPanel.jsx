@@ -33,16 +33,25 @@ export default function StationPanel({ station, onClose, onStartCharge, onReserv
         </div>
         {/* Metrics Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-5">
-          {[{ icon: Zap, label: 'Power', value: `${station.power} kW`, color: 'text-sky-400' },
-          { icon: Gauge, label: 'Rate', value: `₹${station.price}/kWh`, color: 'text-white' },
-          { icon: Clock, label: 'Wait', value: station.waitMin > 0 ? `${station.waitMin} min` : 'None', color: station.waitMin > 0 ? 'text-amber-400' : 'text-emerald-40' },
-          { icon: station.latency > 0 ? Wifi : WifiOff, label: 'Latency', value: station.latency > 0 ? `${station.latency}ms` : 'Down', color: station.latency > 0 ? 'text-white' : 'text-red-400' }].map(({ icon: Icon, label, value, color }, i) => (
-            <div key={i} className="bg-white/[.03] border border-white/[.05] rounded-xl p-3 text-center">
-              <Icon className={`w-4 h-4 mx-auto mb-1 ${color} opacity-70`} />
-              <div className={`text-sm font-bold font-display ${color}`}>{value}</div>
-              <div className="text-[9px] text-slate-500 uppercase mt-0.5">{label}</div>
-            </div>
-          ))}
+          {[{ icon: Zap, label: 'Power', num: station.power, unit: 'kW', prefix: '', color: 'text-sky-400' },
+          { icon: Gauge, label: 'Rate', num: station.price, unit: '/kWh', prefix: '₹', color: 'text-white' },
+          { icon: Clock, label: 'Wait', num: station.waitMin > 0 ? station.waitMin : 'None', unit: station.waitMin > 0 ? 'min' : '', prefix: '', color: station.waitMin > 0 ? 'text-amber-400' : 'text-emerald-400' },
+          { icon: station.latency > 0 ? Wifi : WifiOff, label: 'Latency', num: station.latency > 0 ? station.latency : 'Down', unit: station.latency > 0 ? 'ms' : '', prefix: '', color: station.latency > 0 ? 'text-white' : 'text-red-400' }].map(({ icon: Icon, label, num, unit, prefix, color }, i) => {
+            const isNum = typeof num === 'number';
+            const displayNum = isNum ? Math.round(num * 100) / 100 : num;
+            const rawTitle = `${prefix}${num}${unit}`;
+            
+            return (
+              <div key={i} title={rawTitle} className="bg-white/[.03] border border-white/[.05] rounded-xl p-2 sm:p-3 text-center flex flex-col justify-center items-center overflow-hidden">
+                <Icon className={`w-4 h-4 mb-1 ${color} opacity-70 shrink-0`} />
+                <div className={`text-xs sm:text-sm font-bold font-display leading-tight flex items-baseline justify-center w-full min-w-0 ${color}`}>
+                  <span className="truncate shrink">{prefix}{displayNum}</span>
+                  {unit && <span className="text-[9px] sm:text-[10px] font-medium ml-0.5 shrink-0">{unit}</span>}
+                </div>
+                <div className="text-[9px] text-slate-500 uppercase mt-0.5 w-full truncate">{label}</div>
+              </div>
+            );
+          })}
         </div>
         {/* AI Occupancy Forecast */}
         {station.status !== 'offline' && (
