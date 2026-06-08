@@ -138,6 +138,122 @@ const generateGlobalStations = (count) => {
 };
 INITIAL_STATIONS.push(...generateGlobalStations(300));
 
+// ─── Open Charge Map Integration ───
+const OCM_API_KEY = process.env.OCM_API_KEY || '33c67fed-6e4f-4cdb-9ff1-34286a3f526f';
+
+function getOperatorFromOCM(poi) {
+  const operators = ['tata', 'statiq', 'chargezone', 'jiobp'];
+  const title = (poi.AddressInfo?.Title || '').toLowerCase();
+  
+  if (title.includes('tata') || title.includes('tata power')) return 'tata';
+  if (title.includes('statiq')) return 'statiq';
+  if (title.includes('chargezone') || title.includes('charge zone')) return 'chargezone';
+  if (title.includes('jio') || title.includes('bp pulse') || title.includes('jio-bp')) return 'jiobp';
+  
+  const hash = poi.ID % 4;
+  return operators[hash];
+}
+
+function getConnectorFromOCM(connections) {
+  if (!connections || connections.length === 0) return 'CCS2';
+  const hasCCS2 = connections.some(c => c.ConnectionTypeID === 33);
+  if (hasCCS2) return 'CCS2';
+  const hasType2 = connections.some(c => c.ConnectionTypeID === 25 || c.ConnectionTypeID === 1036);
+  if (hasType2) return 'Type2';
+  return 'CCS2';
+}
+
+function getPowerFromOCM(connections) {
+  if (!connections || connections.length === 0) return 60;
+  let maxPower = 0;
+  for (const conn of connections) {
+    if (conn.PowerKW > maxPower) {
+      maxPower = conn.PowerKW;
+    }
+  }
+  return maxPower > 0 ? maxPower : 60;
+}
+
+function getPriceFromOCM(poi, operator) {
+  if (poi.UsageCost) {
+    const match = poi.UsageCost.match(/(\d+(\.\d+)?)/);
+    if (match) {
+      const parsed = parseFloat(match[1]);
+      if (parsed > 5 && parsed < 50) return parsed;
+    }
+  }
+  switch (operator) {
+    case 'tata': return 18.5;
+    case 'statiq': return 21.0;
+    case 'chargezone': return 19.0;
+    case 'jiobp': return 22.5;
+    default: return 18.0;
+  }
+}
+
+function getStatusFromOCM(poi) {
+  const statusID = poi.StatusTypeID;
+  if (statusID === 100 || statusID === 150) return 'offline';
+  const rand = Math.random();
+  if (rand > 0.85) return 'occupied';
+  if (rand > 0.75) return 'reserved';
+  return 'available';
+}
+
+function mapOCMToStation(poi) {
+  const op = getOperatorFromOCM(poi);
+  const conn = getConnectorFromOCM(poi.Connections);
+  const pwr = getPowerFromOCM(poi.Connections);
+  const prc = getPriceFromOCM(poi, op);
+  const stat = getStatusFromOCM(poi);
+  
+  return {
+    id: `OCM-${poi.ID}`,
+    name: `${op.toUpperCase()} — ${poi.AddressInfo?.Title || 'Charger'}`,
+    operator: op,
+    lat: poi.AddressInfo?.Latitude,
+    lng: poi.AddressInfo?.Longitude,
+    status: stat,
+    connector: conn,
+    power: pwr,
+    price: prc,
+    queue: stat === 'occupied' ? Math.floor(Math.random() * 3) : 0,
+    waitMin: stat === 'occupied' ? Math.floor(Math.random() * 20) : 0,
+    uptime: parseFloat((95.0 + Math.random() * 4.9).toFixed(1)),
+    latency: Math.floor(Math.random() * 50) + 10,
+    temp: 25 + Math.floor(Math.random() * 15),
+    voltage: conn === 'Type2' ? 230 : 415,
+    current: stat === 'occupied' ? Math.round(pwr * 1000 / (conn === 'Type2' ? 230 : 415)) : 0,
+    faultRisk: Math.floor(Math.random() * 10),
+    forecast: Array.from({length: 6}, () => Math.floor(Math.random() * 80))
+  };
+}
+
+async function initOpenChargeMap() {
+  console.log('⚡ Fetching stations from Open Charge Map API...');
+  try {
+    const response = await fetch(`https://api.openchargemap.io/v3/poi/?key=${OCM_API_KEY}&countrycode=IN&maxresults=1000&compact=true&verbose=false`);
+    if (!response.ok) {
+      throw new Error(`Open Charge Map API responded with status ${response.status}`);
+    }
+    const data = await response.json();
+    console.log(`⚡ Open Charge Map API fetched successfully: ${data.length} stations found.`);
+    
+    const ocmStations = data
+      .filter(poi => poi.AddressInfo?.Latitude && poi.AddressInfo?.Longitude)
+      .map(mapOCMToStation);
+      
+    const coreCorridor = INITIAL_STATIONS.slice(0, 7);
+    mockDB.stations = [...coreCorridor, ...ocmStations];
+    
+    console.log(`⚡ Database populated with ${mockDB.stations.length} stations (7 core corridor + ${ocmStations.length} OCM).`);
+    broadcastState();
+  } catch (error) {
+    console.error('⚠️ Failed to load stations from Open Charge Map:', error.message);
+    console.log('⚠️ Falling back to generated simulated stations.');
+  }
+}
+
 const mockDB = {
   walletBalance: 1250.00,
   stations: [...INITIAL_STATIONS],
@@ -722,4 +838,5 @@ app.get('/api/ai/predict-anomaly', async (req, res) => {
 httpServer.listen(PORT, () => {
   console.log(`🚀 EVConnect API Gateway running on http://localhost:${PORT}`);
   console.log(`📡 WebSocket server mapped and active.`);
+  initOpenChargeMap();
 });
