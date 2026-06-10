@@ -35,7 +35,7 @@ const searchPlaces = async (query) => {
   try {
     // 1. Search specifically in India using a bounding box (bbox) to keep search terms highly relevant
     // bbox=minLon,minLat,maxLon,maxLat for India roughly: 68.0,6.0,98.0,36.0
-    const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&bbox=68.0,6.0,98.0,36.0&limit=8`;
+    const url = `${import.meta.env.VITE_PHOTON_API_URL}?q=${encodeURIComponent(query)}&bbox=68.0,6.0,98.0,36.0&limit=8`;
     const res = await fetch(url);
     if (!res.ok) throw new Error('API Error');
     const data = await res.json();
@@ -78,7 +78,7 @@ const formatShortName = (item) => {
 const fetchOSRMRoute = async (fromCoords, toCoords) => {
   if (!fromCoords || !toCoords) return null;
   try {
-    const url = `https://router.project-osrm.org/route/v1/driving/${fromCoords.lng},${fromCoords.lat};${toCoords.lng},${toCoords.lat}?overview=full&geometries=geojson`;
+    const url = `${import.meta.env.VITE_OSRM_ROUTING_URL}${fromCoords.lng},${fromCoords.lat};${toCoords.lng},${toCoords.lat}?overview=full&geometries=geojson`;
     const res = await fetch(url);
     if (!res.ok) return null;
     const data = await res.json();

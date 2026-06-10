@@ -69,7 +69,7 @@ const TABS = [
 
 export default function App() {
   const [theme, setTheme] = useState('dark');
-  const [stations, setStations] = useState(STATIONS);
+  const [stations, setStations] = useState([]);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
   const isIndiaStation = (st) => {
@@ -117,7 +117,7 @@ export default function App() {
       return;
     }
     try {
-      const response = await fetch('http://localhost:8085/api/reservation/cancel', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/reservation/cancel`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stationId: station.id })
       });
@@ -142,12 +142,12 @@ export default function App() {
   const fetchInitialData = useCallback(async () => {
     if (!isNetworkOnline) return;
     try {
-      const resStations = await fetch('http://localhost:8085/api/stations');
+      const resStations = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/stations`);
       if (resStations.ok) {
         const data = await resStations.json();
         setStations(data);
       }
-      const resWallet = await fetch('http://localhost:8085/api/wallet');
+      const resWallet = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/wallet`);
       if (resWallet.ok) {
         const data = await resWallet.json();
         setBalance(data.balance);
@@ -167,7 +167,7 @@ export default function App() {
       const offlineTx = transactions.filter(t => t.isPendingSync);
       if (offlineTx.length > 0) {
         console.log('🔄 Syncing offline transactions to server...');
-        fetch('http://localhost:8085/api/wallet/sync-offline', {
+        fetch(`${import.meta.env.VITE_API_BASE_URL}/api/wallet/sync-offline`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ transactions: offlineTx })
@@ -178,7 +178,7 @@ export default function App() {
 
   useEffect(() => {
     if (!isNetworkOnline) return;
-    const socket = socketIO('http://localhost:8085');
+    const socket = socketIO(import.meta.env.VITE_API_BASE_URL);
     socket.on('connect', () => console.log('⚡ Connected to Live WebSocket Stream.'));
     socket.on('stations-updated', (updatedStations) => setStations(updatedStations));
     socket.on('wallet-updated', ({ balance, transactions }) => {
@@ -201,7 +201,7 @@ export default function App() {
       return;
     }
     try {
-      const response = await fetch(`http://localhost:8085/api/stations/${station.id}/start-charge`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/stations/${station.id}/start-charge`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isOffline: false, startSoc: userSoc })
       });
@@ -235,7 +235,7 @@ export default function App() {
       return;
     }
     try {
-      const response = await fetch(`http://localhost:8085/api/stations/${chargingSession.stationId}/stop-charge`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/stations/${chargingSession.stationId}/stop-charge`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cost, kwh, soc, isOffline: false })
       });
@@ -261,7 +261,7 @@ export default function App() {
       return;
     }
     try {
-      const response = await fetch('http://localhost:8085/api/reservation', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/reservation`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stationId: station.id })
       });
@@ -280,7 +280,7 @@ export default function App() {
   const onTopUp = useCallback(async (amt) => {
     if (!isNetworkOnline) { setBalance(b => b + amt); return; }
     try {
-      const response = await fetch('http://localhost:8085/api/wallet/topup', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/wallet/topup`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount: amt })
       });
@@ -680,24 +680,7 @@ export default function App() {
 
           {/* ── STATIONS TAB ── */}
           {activeTab === 'stations' && (
-            <div className={`flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6 ${!routeActive ? 'flex items-center justify-center' : ''}`}>
-              {!routeActive ? (
-                <div className="flex flex-col items-center justify-center text-center max-w-sm mx-auto space-y-4 animate-fade-in -mt-10">
-                  <div className="w-16 h-16 bg-sky-500/10 rounded-full flex items-center justify-center border border-sky-500/20 mb-2">
-                    <Navigation className="w-8 h-8 text-sky-400" />
-                  </div>
-                  <h3 className="text-xl font-bold text-white">Route Directory</h3>
-                  <p className="text-sm text-slate-400 leading-relaxed">
-                    This directory dynamically generates based on your journey. Please plan a route first to unlock a personalized list of all EV charging stations along your specific path.
-                  </p>
-                  <button
-                    onClick={() => setActiveTab('route')}
-                    className="mt-4 px-6 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-sky-500 to-violet-500 text-white shadow-lg shadow-sky-500/20 hover:shadow-sky-500/40 transition-all active:scale-[0.98] cursor-pointer"
-                  >
-                    Go to Route Planner
-                  </button>
-                </div>
-              ) : (
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6">
                 <div className="max-w-5xl mx-auto space-y-5 w-full">
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
                     <div>
@@ -785,7 +768,6 @@ export default function App() {
                   })}
                 </div>
               </div>
-              )}
             </div>
           )}
 

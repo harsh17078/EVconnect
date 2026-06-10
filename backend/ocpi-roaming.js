@@ -24,7 +24,7 @@ ocpiRouter.post('/credentials', (req, res) => {
     timestamp: new Date().toISOString(),
     data: {
       token: OCPI_CREDENTIALS.our_token,
-      url: 'https://api.evconnect.com/ocpi/v2.2.1/credentials'
+      url: process.env.OCPI_ROAMING_URL || 'https://api.evconnect.com/ocpi/v2.2.1/credentials'
     }
   });
 });

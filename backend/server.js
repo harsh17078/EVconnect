@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
@@ -23,7 +24,8 @@ app.use((req, res, next) => {
 const PORT = process.env.PORT || 8085;
 
 // Core Stations List (State stored in memory)
-const INITIAL_STATIONS = [
+const INITIAL_STATIONS = [];
+/*
   {
     id: 'TP-LKO-01', name: 'Tata Power Hub — Hazratganj', operator: 'tata',
     lat: 26.8504, lng: 80.9422, status: 'available',
@@ -136,7 +138,7 @@ const generateGlobalStations = (count) => {
   }
   return fake;
 };
-INITIAL_STATIONS.push(...generateGlobalStations(300));
+*/
 
 // ─── Open Charge Map Integration ───
 const OCM_API_KEY = process.env.OCM_API_KEY || '33c67fed-6e4f-4cdb-9ff1-34286a3f526f';
@@ -232,7 +234,8 @@ function mapOCMToStation(poi) {
 async function initOpenChargeMap() {
   console.log('⚡ Fetching stations from Open Charge Map API...');
   try {
-    const response = await fetch(`https://api.openchargemap.io/v3/poi/?key=${OCM_API_KEY}&countrycode=IN&maxresults=1000&compact=true&verbose=false`);
+    const ocmUrl = process.env.OCM_API_URL || 'https://api.openchargemap.io/v3/poi/';
+    const response = await fetch(`${ocmUrl}?key=${OCM_API_KEY}&countrycode=IN&maxresults=1000&compact=true&verbose=false`);
     if (!response.ok) {
       throw new Error(`Open Charge Map API responded with status ${response.status}`);
     }
@@ -243,8 +246,8 @@ async function initOpenChargeMap() {
       .filter(poi => poi.AddressInfo?.Latitude && poi.AddressInfo?.Longitude)
       .map(mapOCMToStation);
       
-    const coreCorridor = INITIAL_STATIONS.slice(0, 7);
-    mockDB.stations = [...coreCorridor, ...ocmStations];
+    const coreCorridor = [];
+    mockDB.stations = [...ocmStations];
     
     console.log(`⚡ Database populated with ${mockDB.stations.length} stations (7 core corridor + ${ocmStations.length} OCM).`);
     broadcastState();
@@ -297,7 +300,8 @@ function getOrCreateStation(id) {
 // 1. MQTT Telemetry Pulse Subscriber (CPO Hardware Link)
 let mqttClient = null;
 try {
-  mqttClient = mqtt.connect('mqtt://localhost:1883', { connectTimeout: 1000 });
+  const mqttUrl = process.env.MQTT_BROKER_URL || 'mqtt://localhost:1883';
+  mqttClient = mqtt.connect(mqttUrl, { connectTimeout: 1000 });
   
   mqttClient.on('connect', () => {
     console.log('⚡ Connected to Mosquitto MQTT Broker.');
@@ -472,7 +476,8 @@ async function geocodeCity(name) {
     if (clean.includes(key)) return val;
   }
   try {
-    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=in&q=${encodeURIComponent(name)}&limit=1`, {
+    const nominatimSearchUrl = process.env.NOMINATIM_SEARCH_URL || 'https://nominatim.openstreetmap.org/search';
+    const res = await fetch(`${nominatimSearchUrl}?format=json&countrycodes=in&q=${encodeURIComponent(name)}&limit=1`, {
       headers: { 'User-Agent': 'EVConnect-Charging-App' }
     });
     if (!res.ok) throw new Error('Nominatim geocoder error');
@@ -489,7 +494,8 @@ async function geocodeCity(name) {
 // Nominatim Reverse Geocoder (find intermediate place names)
 async function getPlaceName(lat, lng) {
   try {
-    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10`, {
+    const nominatimReverseUrl = process.env.NOMINATIM_REVERSE_URL || 'https://nominatim.openstreetmap.org/reverse';
+    const res = await fetch(`${nominatimReverseUrl}?format=json&lat=${lat}&lon=${lng}&zoom=10`, {
       headers: { 'User-Agent': 'EVConnect-Charging-App' }
     });
     if (!res.ok) throw new Error('Nominatim reverse geocoder error');
@@ -505,7 +511,8 @@ async function getPlaceName(lat, lng) {
 
 // OSRM Driving Route Engine
 async function getOSRMRoute(start, end) {
-  const url = `https://router.project-osrm.org/route/v1/driving/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson`;
+  const osrmUrl = process.env.OSRM_ROUTING_URL || 'https://router.project-osrm.org/route/v1/driving/';
+  const url = `${osrmUrl}${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson`;
   const res = await fetch(url);
   if (!res.ok) throw new Error('OSRM routing engine response error');
   const data = await res.json();
@@ -809,7 +816,8 @@ app.post('/api/reservation/cancel', (req, res) => {
 app.get('/api/ai/predict-occupancy', async (req, res) => {
   const { stationId } = req.query;
   try {
-    const response = await fetch('http://localhost:8000/predict/occupancy', {
+    const aiOccupancyUrl = process.env.AI_SERVICE_OCCUPANCY_URL || 'http://localhost:8000/predict/occupancy';
+    const response = await fetch(aiOccupancyUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ start_hour: new Date().getHours() })
@@ -836,7 +844,8 @@ app.get('/api/ai/predict-occupancy', async (req, res) => {
 app.get('/api/ai/predict-anomaly', async (req, res) => {
   const { voltage, current, temp } = req.query;
   try {
-    const response = await fetch('http://localhost:8000/predict/anomaly', {
+    const aiAnomalyUrl = process.env.AI_SERVICE_ANOMALY_URL || 'http://localhost:8000/predict/anomaly';
+    const response = await fetch(aiAnomalyUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

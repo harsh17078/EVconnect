@@ -35,8 +35,8 @@ export default function LiveMap({ stations = [], selectedStation, onSelectStatio
     window.L.control.zoom({ position: 'bottomright' }).addTo(map);
 
     const initialUrl = theme === 'light'
-      ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
-      : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+      ? import.meta.env.VITE_CARTO_VOYAGER_URL
+      : import.meta.env.VITE_CARTO_DARK_URL;
 
     window.L.tileLayer(initialUrl, {
       maxZoom: 18,
@@ -71,8 +71,8 @@ export default function LiveMap({ stations = [], selectedStation, onSelectStatio
     });
 
     const tileUrl = theme === 'light'
-      ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
-      : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+      ? import.meta.env.VITE_CARTO_VOYAGER_URL
+      : import.meta.env.VITE_CARTO_DARK_URL;
 
     window.L.tileLayer(tileUrl, {
       maxZoom: 18,
