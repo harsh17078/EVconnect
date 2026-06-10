@@ -99,3 +99,13 @@ The frontend client includes an **auto-adapting layout controller** alongside a 
 - **Mobile Screen**: Drivers see a map, range stops, bottom navigation, QR Scanner, and VoltPass Wallet payments.
 - **Tablet Screen**: Split-screen displaying the Map on the left and active charging values / local reservations on the right.
 - **Laptop/Desktop Screen**: Renders the smartphone frame (Driver App) alongside the full CPO console containing OCPP WebSockets logs, dynamic load balancers, and Isolation Forest risks.
+
+## 🎥Project Demonstration Video
+
+Watch the complete project demonstration here:
+
+
+
+https://github.com/user-attachments/assets/d42f5cd0-4e0f-45c2-9ad4-8ce6518bf56e
+
+
